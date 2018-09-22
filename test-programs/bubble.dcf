@@ -23,18 +23,25 @@ class Program {
 	void write_int(int n) {
 		callout("printf", "%d", n);
 	}
+	void write_char(int n) {
+		callout("printf", "%c", n);
+	}
 
 	void ignore() {
 		callout("getchar");
 	}
 
-	int get_sum(int n) {
-		int sum;
-		sum = 0;
+	int bubble_sort(int n) {
+		int temp;
 		for i = 0 , n {
-			sum += A[i];
+			for j = 0 , n - i - 1 {
+				if (A[j] > A[j + 1]) {
+					temp = A[j];
+					A[j] = A[j + 1];
+					A[j + 1] = temp;
+				}
+			}
 		}
-		return sum;
 	}
 
 	void main() {
@@ -43,7 +50,11 @@ class Program {
 		for i = 0 , n {
 			A[i] = read_int();
 		}
-		s = get_sum(n);
-		write_int(s);
+		bubble_sort(n);
+		for i = 0 , n {
+			write_int(A[i]);
+			write_char(32); // SPACE
+		}
+		write_char(10); // LF
 	}
 }

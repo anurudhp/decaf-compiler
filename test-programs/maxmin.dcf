@@ -5,7 +5,7 @@ class Program {
 		int value, sign;
 		value = 0;
 		sign = 1;
-		for i = 0 to 100 {
+		for i = 0 , 100 {
 			int curr;
 			curr = callout("getchar");
 			if (curr == 45 && i == 0) {
@@ -36,13 +36,12 @@ class Program {
 		int n, s, min, max;
 
 		n = read_int();
-		callout (scanf, "%d", n);
-		for i = 0 to n {
+		for i = 0 , n {
 			A[i] = read_int();
 		}
 		min = A[0];
 		max = A[0];
-		for i = 0 to n {
+		for i = 0 , n {
 			if (A[i] < min) {
 				min = A[i];
 			}
