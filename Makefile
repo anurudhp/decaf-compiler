@@ -1,6 +1,6 @@
 OPTS=-Wno-implicit-function-declaration
 CC=gcc
-BISON_OPTS=
+BISON_OPTS=-v
 
 all:
 	@echo "Usage:"
@@ -19,7 +19,13 @@ bin/parser: build/parser.tab.c
 parser: bin/parser
 scanner: build/lex.yy.c
 
+test: parser scanner
+	@for i in `ls test-programs`; do  			 			\
+		echo program: $$i ;									\
+		./bin/parser <test-programs/$$i >/dev/null;			\
+	done;
+
 clean:
 	@rm -rf build/* bin/*
 
-.PHONY: clean parser scanner
+.PHONY: clean test parser scanner

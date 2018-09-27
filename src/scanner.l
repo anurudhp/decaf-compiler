@@ -1,63 +1,75 @@
 %{
 #include "parser.tab.h"
-int lineno = 0; 
+int lineno = 1; 
 %}
 
 
 %%
-"int" 					{printf("INT\n"); return INT;} 
-"boolean"				{printf("BOOL\n"); return BOOL;}
 [0-9]*					{printf("dec\n"); return INT_LIT;}
 0x[0-9a-fA-F]*			{printf("hex\n"); return INT_LIT;}
 \'.\'					{printf("char\n"); return CHAR_LIT;}
-\".*\"					{printf("string\n"); return STRING_LIT;}
+\".*\"					{printf("string[%lu]: %s\n", strlen(yytext), yytext); return STRING_LIT;}
 (true|false) 			{printf("bool\n"); return BOOL_LIT;}
 
-[a-zA-Z_][a-zA-Z0-9_]*	{return ID;}
+ /*** keywords ***/
+"int" 					{printf("%s\n", yytext); return INT;} 
+"boolean"				{printf("%s\n", yytext); return BOOL;}
+"void"					{printf("%s\n", yytext); return VOID;}
+"class"					{printf("%s\n", yytext); return CLASS;}
+"if"					{printf("%s\n", yytext); return IF;}
+"else"					{printf("%s\n", yytext); return ELSE;}
+"for"					{printf("%s\n", yytext); return FOR;}
+"break"					{printf("%s\n", yytext); return BREAK;}
+"continue"				{printf("%s\n", yytext); return CONTINUE;}
+"return"				{printf("%s\n", yytext); return RETURN;}
+"callout"				{printf("%s\n", yytext); return CALLOUT;}
+
+[a-zA-Z_][a-zA-Z0-9_]*	{printf("ID\n"); return ID;}
 
  /**** Operators ****/
 	/* Arithmetic */
-"+"						{return ADD;}
-"-"						{return SUB;}
-"*"						{return MUL;}
-"/"						{return DIV;}
-"%"						{return MOD;}
+"+"						{printf("%s\n", yytext); return ADD;}
+"-"						{printf("%s\n", yytext); return SUB;}
+"*"						{printf("%s\n", yytext); return MUL;}
+"/"						{printf("%s\n", yytext); return DIV;}
+"%"						{printf("%s\n", yytext); return MOD;}
 
 	/* Logical */
-"&&"					{return AND;}
-"||"					{return OR;}
-"!"						{return NOT;}
+"&&"					{printf("%s\n", yytext); return AND;}
+"||"					{printf("%s\n", yytext); return OR;}
+"!"						{printf("%s\n", yytext); return NOT;}
 
 	/* Relational */
-">"						{return GT;}
-"<"						{return LT;}
-">="					{return GE;}
-"<="					{return LE;}
+">"						{printf("%s\n", yytext); return GT;}
+"<"						{printf("%s\n", yytext); return LT;}
+">="					{printf("%s\n", yytext); return GE;}
+"<="					{printf("%s\n", yytext); return LE;}
 
-"=="					{return EQ;}
-"!="					{return NE;}
+"=="					{printf("%s\n", yytext); return EQ;}
+"!="					{printf("%s\n", yytext); return NE;}
 
 	/* Assignment */
-"="						{return ASSIGN;}
-"+="					{return ASSIGN_ADD;}
-"-="					{return ASSIGN_SUB;}
+"="						{printf("%s\n", yytext); return ASSIGN;}
+"+="					{printf("%s\n", yytext); return ASSIGN_ADD;}
+"-="					{printf("%s\n", yytext); return ASSIGN_SUB;}
 
  /*** Brackets ***/
-"("						{return PAR_OPEN;}
-")"						{return PAR_CLOSE;}
-"["						{return SQR_OPEN;}
-"]"						{return SQR_CLOSE;}
-"{"						{return BRACE_OPEN;}
-"}"						{return BRACE_CLOSE;}
+"("						{printf("%s\n", yytext); return PAR_OPEN;}
+")"						{printf("%s\n", yytext); return PAR_CLOSE;}
+"["						{printf("%s\n", yytext); return SQR_OPEN;}
+"]"						{printf("%s\n", yytext); return SQR_CLOSE;}
+"{"						{printf("%s\n", yytext); return BRACE_OPEN;}
+"}"						{printf("%s\n", yytext); return BRACE_CLOSE;}
 
  /*** Separators ***/
-";"						{return SEMICOLON;}
-","						{return COMMA;}
+";"						{printf("%s\n", yytext); return SEMICOLON;}
+","						{printf("%s\n", yytext); return COMMA;}
 
- /*** Whitespaces ***/
+ /*** Whitespaces/comments ***/
 [ \t]					{ }
-\n						{++lineno;}
-.						{ printf("Line No %d: Unrecognized Character\n", lineno); }
+\/\/.*\n				{printf("comment?: %s\n", yytext); ++lineno;}
+\n 						{++lineno;}
+.						{ printf("Line No %d: Unrecognized Character `%s`\n", lineno, yytext); }
 
 %%
 

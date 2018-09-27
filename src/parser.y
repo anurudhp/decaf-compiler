@@ -2,7 +2,8 @@
 #include <stdio.h>	
 %}
 
-%token INT BOOL 
+%token CLASS IF ELSE FOR BREAK CONTINUE RETURN CALLOUT
+%token INT BOOL VOID
 %token INT_LIT BOOL_LIT STRING_LIT CHAR_LIT
 %token ID
 %token ADD SUB MUL DIV MOD
@@ -16,66 +17,144 @@
 
 
 %nonassoc NOT
+%right ASSIGN ASSIGN_ADD ASSIGN_SUB
 %left EQ NE LE LT GE GT
 %left AND OR
 %left ADD SUB
 %left MUL DIV
 %left MOD
-%left BINOP
 
 %%
 
+program : CLASS ID BRACE_OPEN decl_list BRACE_CLOSE 
+		;
+
+/* Field(data) declarations */
+
+type : INT 
+	 | BOOL 
+	 ;
+return_type : type 
+			| VOID
+			;
+
+decl_list : field_decl decl_list
+		  | method_decl_list
+		  ;
+field_decl : type glob_var_decl_list SEMICOLON 
+		   ;
+
+glob_var_decl_list : glob_var_decl 
+				   | glob_var_decl COMMA glob_var_decl_list
+				   ;
+glob_var_decl : ID 
+			  | ID SQR_OPEN INT_LIT SQR_CLOSE
+			  ;
+
+/* Function(method) declarations */
+method_decl_list : method_decl method_decl_list 
+				 | method_decl
+				 ;
+method_decl : return_type ID PAR_OPEN param_list PAR_CLOSE block
+			;
+
+param_list : param 
+		   | param COMMA param_list
+		   | /* EPS */
+		   ;
+param : type ID
+	  ;
+
+// Statement block
+block : BRACE_OPEN var_decl_list statement_list BRACE_CLOSE 
+	  ;
+
+var_decl_list : var_decl var_decl_list
+			  | /* EPS */
+			  ;
+var_decl : type var_list SEMICOLON
+		 ;
+var_list : ID 
+		 | ID COMMA var_list
+		 ;
+
+
+statement_list : statement SEMICOLON statement_list
+			   | /* EPS */
+			   ;
+statement : location assign_op expr %prec ASSIGN
+		  | method_call SEMICOLON
+		  | IF PAR_OPEN expr PAR_CLOSE block else_block 
+		  | FOR ID ASSIGN expr COMMA expr block
+		  | BREAK SEMICOLON
+		  | CONTINUE SEMICOLON
+		  | RETURN expr SEMICOLON
+		  | RETURN SEMICOLON
+		  | block 
+		  ;
+
+else_block : ELSE block
+		   | /* EPS */
+		   ;
+
+assign_op : ASSIGN
+		  | ASSIGN_ADD
+		  | ASSIGN_SUB
+		  ;
+
+/* Expressions */
 expr : location
 	 | method_call
 	 | literal
-	 | expr bin_op expr %prec BINOP
+
+	 | PAR_OPEN expr PAR_CLOSE
+	 
 	 | SUB expr
 	 | NOT expr
-	 | PAR_OPEN expr PAR_CLOSE
+	 
+	 | expr ADD expr 
+	 | expr SUB expr 
+	 | expr MUL expr 
+	 | expr DIV expr 
+	 | expr MOD expr 
+	 
+	 | expr AND expr 
+	 | expr OR expr 
+
+	 | expr LE expr 
+	 | expr LT expr 
+	 | expr GE expr
+	 | expr GT expr
+	 | expr EQ expr
+	 | expr NE expr
 	 ;
 
 location : ID
 		 | ID SQR_OPEN expr SQR_CLOSE ;
 		 
 /* method calls */
-method_call : method_name PAR_OPEN params PAR_CLOSE;
+method_call : method_name PAR_OPEN args PAR_CLOSE
+			| CALLOUT PAR_OPEN STRING_LIT callout_arg_list PAR_CLOSE
+			;
+
+callout_arg_list : COMMA callout_arg callout_arg_list 
+				 | /* EPS */
+				 ;
+callout_arg : arg 
+			| STRING_LIT 
+			; 
 
 method_name : ID;
 
-params : param_list | ;
-param_list : param | param COMMA param_list ;
-param: expr;
+args : arg_list | /* EPS */ ;
+arg_list : arg | arg COMMA arg_list ;
+arg: expr;
 
-/* types/literals */
-//  type : INT | BOOL
-
+/* literals */
 literal : INT_LIT 
 		| BOOL_LIT 
 		| CHAR_LIT ;
 
-/* operators */
-bin_op  : arith_op 
-		| rel_op 
-		| cond_op 
-		| comp_op
-		;
-arith_op : ADD 
-		 | SUB 
-		 | MUL 
-		 | DIV 
-		 | MOD
-		 ;
-rel_op  : LE 
-		| LT 
-		| GE 
-		| GT 
-		;
-comp_op : EQ 
-		| NE
-		;
-cond_op : AND 
-		| OR 
-		;
 %%
 
 int main(int argc, char **argv)
