@@ -15,14 +15,14 @@
 %token BRACE_OPEN BRACE_CLOSE
 %token SEMICOLON COMMA
 
-
-%nonassoc NOT
-%right ASSIGN ASSIGN_ADD ASSIGN_SUB
-%left EQ NE LE LT GE GT
-%left AND OR
+%left OR
+%left AND
+%nonassoc EQ NE 
+%nonassoc LE LT GE GT
 %left ADD SUB
-%left MUL DIV
-%left MOD
+%left MUL DIV MOD
+%nonassoc NOT
+%nonassoc UMINUS 
 
 %start program
 
@@ -110,7 +110,7 @@ expr : location
 
 	 | PAR_OPEN expr PAR_CLOSE
 	 
-	 | SUB expr
+	 | SUB expr %prec UMINUS
 	 | NOT expr
 	 
 	 | expr ADD expr 
