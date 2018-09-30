@@ -24,9 +24,11 @@
 %left MUL DIV
 %left MOD
 
+%start program 
+
 %%
 
-program : CLASS ID BRACE_OPEN decl_list BRACE_CLOSE 
+program : CLASS ID BRACE_OPEN field_decl_list method_decl_list BRACE_CLOSE 
 		;
 
 /* Field(data) declarations */
@@ -34,13 +36,10 @@ program : CLASS ID BRACE_OPEN decl_list BRACE_CLOSE
 type : INT 
 	 | BOOL 
 	 ;
-return_type : type 
-			| VOID
-			;
 
-decl_list : field_decl decl_list
-		  | method_decl_list
-		  ;
+field_decl_list : field_decl_list field_decl 
+		  		| /* EPS */
+		  		;
 field_decl : type glob_var_decl_list SEMICOLON 
 		   ;
 
@@ -52,10 +51,11 @@ glob_var_decl : ID
 			  ;
 
 /* Function(method) declarations */
-method_decl_list : method_decl method_decl_list 
+method_decl_list : method_decl_list method_decl 
 				 | method_decl
 				 ;
-method_decl : return_type ID PAR_OPEN param_list PAR_CLOSE block
+method_decl : type ID PAR_OPEN param_list PAR_CLOSE block
+			| VOID ID PAR_OPEN param_list PAR_CLOSE block
 			;
 
 param_list : param 
@@ -79,10 +79,10 @@ var_list : ID
 		 ;
 
 
-statement_list : statement SEMICOLON statement_list
+statement_list : statement statement_list
 			   | /* EPS */
 			   ;
-statement : location assign_op expr SEMICOLON %prec ASSIGN
+statement : location assign_op expr SEMICOLON
 		  | method_call SEMICOLON
 		  | IF PAR_OPEN expr PAR_CLOSE block else_block 
 		  | FOR ID ASSIGN expr COMMA expr block
