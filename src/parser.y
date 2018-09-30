@@ -24,10 +24,9 @@
 %left MUL DIV
 %left MOD
 
-%start program 
+%start program
 
 %%
-
 program : CLASS ID BRACE_OPEN field_decl_list method_decl_list BRACE_CLOSE 
 		;
 
@@ -38,7 +37,7 @@ type : INT
 	 ;
 
 field_decl_list : field_decl_list field_decl 
-		  		| /* EPS */
+		  		| %empty
 		  		;
 field_decl : type glob_var_decl_list SEMICOLON 
 		   ;
@@ -58,10 +57,12 @@ method_decl : type ID PAR_OPEN param_list PAR_CLOSE block
 			| VOID ID PAR_OPEN param_list PAR_CLOSE block
 			;
 
-param_list : param 
-		   | param COMMA param_list
-		   | /* EPS */
+param_list : param_list_non_empty
+		   | %empty
 		   ;
+param_list_non_empty : param 
+		   			 | param COMMA param_list_non_empty
+		   			 ;
 param : type ID
 	  ;
 
@@ -70,7 +71,7 @@ block : BRACE_OPEN var_decl_list statement_list BRACE_CLOSE
 	  ;
 
 var_decl_list : var_decl var_decl_list
-			  | /* EPS */
+			  | %empty
 			  ;
 var_decl : type var_list SEMICOLON
 		 ;
@@ -80,7 +81,7 @@ var_list : ID
 
 
 statement_list : statement statement_list
-			   | /* EPS */
+			   | %empty
 			   ;
 statement : location assign_op expr SEMICOLON
 		  | method_call SEMICOLON
@@ -94,7 +95,7 @@ statement : location assign_op expr SEMICOLON
 		  ;
 
 else_block : ELSE block
-		   | /* EPS */
+		   | %empty
 		   ;
 
 assign_op : ASSIGN
@@ -138,7 +139,7 @@ method_call : method_name PAR_OPEN args PAR_CLOSE
 			;
 
 callout_arg_list : COMMA callout_arg callout_arg_list 
-				 | /* EPS */
+				 | %empty
 				 ;
 callout_arg : arg 
 			| STRING_LIT 
@@ -146,8 +147,12 @@ callout_arg : arg
 
 method_name : ID;
 
-args : arg_list | /* EPS */ ;
-arg_list : arg | arg COMMA arg_list ;
+args : arg_list 
+	 | %empty 
+	 ;
+arg_list : arg
+		 | arg COMMA arg_list
+		 ;
 arg: expr;
 
 /* literals */
