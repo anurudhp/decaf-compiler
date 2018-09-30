@@ -82,7 +82,7 @@ var_list : ID
 statement_list : statement SEMICOLON statement_list
 			   | /* EPS */
 			   ;
-statement : location assign_op expr %prec ASSIGN
+statement : location assign_op expr SEMICOLON %prec ASSIGN
 		  | method_call SEMICOLON
 		  | IF PAR_OPEN expr PAR_CLOSE block else_block 
 		  | FOR ID ASSIGN expr COMMA expr block
