@@ -1,5 +1,5 @@
 %{
-#include <stdio.h>	
+#include <iostream>	
 %}
 
 %token CLASS IF ELSE FOR BREAK CONTINUE RETURN CALLOUT
@@ -162,12 +162,10 @@ literal : INT_LIT
 
 %%
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	yyparse();
 }
 
-int yyerror(char *s)
-{
-	(void) fprintf(stderr, "error: %s\n", s);
+int yyerror(char *s) {
+	std::cerr << "error: " << s << std::endl;
 }
