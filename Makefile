@@ -1,31 +1,29 @@
-OPTS=-Wno-implicit-function-declaration
-CC=gcc
-BISON_OPTS=-v
+CC_OPTS=-std=c++14 -Wall -ll
+CC=g++
+FLEX_OPTS=
+BISON_OPTS=
 
-all:
-	@echo "Usage:"
-	@echo "- scanner"
-	@echo "- parser"
+all: parser
 
-build/lex.yy.c: src/scanner.l
-	flex -o build/lex.yy.c src/scanner.l
-	
-build/parser.tab.c: src/parser.y build/lex.yy.c
-	bison -o build/parser.tab.c -d src/parser.y $(BISON_OPTS)
+src/lex.yy.cc: src/scanner.ll
+	flex $(FLEX_OPTS) -o $@ $<
 
-bin/parser: build/parser.tab.c
-	$(CC) $(OPTS) -o bin/parser build/parser.tab.c build/lex.yy.c -ll
+src/parser.tab.cc: src/parser.yy src/lex.yy.cc
+	bison -o $@ -d $< $(BISON_OPTS)
 
-parser: bin/parser
-scanner: build/lex.yy.c
+bin/decaf: src/parser.tab.cc src/lex.yy.cc
+	$(CC) -o $@ $^ $(CC_OPTS)
 
-test: parser scanner
+parser: bin/decaf
+
+test: parser
 	@for i in `ls test-programs`; do  			 			\
 		echo program: $$i ;									\
-		./bin/parser <test-programs/$$i >/dev/null;			\
+		./bin/decaf <test-programs/$$i >/dev/null;			\
 	done;
 
 clean:
-	@rm -rf build/* bin/*
+	@rm -rf bin/*
+	@rm -f src/lex.yy.cc src/parser.tab.* src/stack.hh src/location.hh src/position.hh src/parser.output 
 
-.PHONY: clean test parser scanner
+.PHONY: clean test parser

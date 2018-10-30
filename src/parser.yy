@@ -1,6 +1,31 @@
-%{
+%skeleton "lalr1.cc"
+%defines
+%define api.namespace {Decaf}
+%define parser_class_name {Parser}
+
+%locations 
+
+%code requires {
+	namespace Decaf {
+		class Scanner;
+	}
+}
+
+%parse-param {Scanner& scanner}
+
+%code {
 #include <iostream>	
-%}
+#include <fstream>
+#include <string>
+
+#include "scanner.hh"
+
+#undef yylex
+#define yylex scanner.yylex
+}
+
+%token END 0
+
 
 %token CLASS IF ELSE FOR BREAK CONTINUE RETURN CALLOUT
 %token INT BOOL VOID
@@ -27,7 +52,7 @@
 %start program
 
 %%
-program : CLASS ID BRACE_OPEN field_decl_list method_decl_list BRACE_CLOSE 
+program : CLASS ID BRACE_OPEN field_decl_list method_decl_list BRACE_CLOSE
 		;
 
 /* Field(data) declarations */
@@ -163,9 +188,31 @@ literal : INT_LIT
 %%
 
 int main(int argc, char **argv) {
-	yyparse();
+	if (argc < 2) {
+		std::cerr << "Usage: decaf <file>.dcf\n";
+		return 1;
+	}
+
+	std::string filename(argv[1]);
+
+	std::ifstream fin(filename);
+	if (!fin.good()) {
+		std::cerr << "Error: unable to read file " << filename << "\n";
+		return 1;
+	}
+
+	Decaf::Scanner *scanner = new Decaf::Scanner(&fin);
+	Decaf::Parser *parser = new Decaf::Parser(*scanner);
+	if (parser->parse() != 0) {
+		std::cerr << "Parsing failed!\n";
+		return 1;
+	}
+
+
+	return 0;
 }
 
-int yyerror(char *s) {
-	std::cerr << "error: " << s << std::endl;
+void Decaf::Parser::error(const location_type& loc, const std::string& err) {
+	std::cerr << "[" << loc << "] " 
+			  << "error: " << err << std::endl;
 }
