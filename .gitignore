@@ -1,3 +1,7 @@
 build
 bin
 var
+src/parser.tab.*
+src/stack.hh
+src/parser.output
+src/lex.yy.cc
