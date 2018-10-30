@@ -5,3 +5,5 @@ src/parser.tab.*
 src/stack.hh
 src/parser.output
 src/lex.yy.cc
+src/location.hh
+src/position.hh
