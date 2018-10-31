@@ -71,10 +71,7 @@
 %token AND OR NOT
 %token GT GE LT LE EQ NE
 %token ASSIGN ASSIGN_ADD ASSIGN_SUB
-%token PAR_OPEN PAR_CLOSE
-%token SQR_OPEN SQR_CLOSE
-%token BRACE_OPEN BRACE_CLOSE
-%token SEMICOLON COMMA
+%token '(' ')' '[' ']' '{' '}' ',' ';'
 
  /* non-terminals */
 %type <ast> literal location
@@ -95,8 +92,8 @@
 %start program
 
 %%
-program : CLASS ID BRACE_OPEN field_decl_list method_decl_list BRACE_CLOSE {}
-		;
+program : CLASS ID '{' field_decl_list method_decl_list '}' {}
+        ;
 
 /* Field(data) declarations */
 
@@ -107,58 +104,58 @@ type : INT { $$ = ValueType::INT; }
 field_decl_list : field_decl_list field_decl {}
 		  		| %empty {}
 		  		;
-field_decl : type glob_var_decl_list SEMICOLON {}
+field_decl : type glob_var_decl_list ';' {}
 		   ;
 
 glob_var_decl_list : glob_var_decl {}
-				   | glob_var_decl COMMA glob_var_decl_list {}
+				   | glob_var_decl ',' glob_var_decl_list {}
 				   ;
 glob_var_decl : ID {}
-			  | ID SQR_OPEN INT_LIT SQR_CLOSE {}
+			  | ID '[' INT_LIT ']' {}
 			  ;
 
 /* Function(method) declarations */
 method_decl_list : method_decl_list method_decl {}
 				 | method_decl {}
 				 ;
-method_decl : type ID PAR_OPEN param_list PAR_CLOSE block {}
-			| VOID ID PAR_OPEN param_list PAR_CLOSE block {}
+method_decl : type ID '(' param_list ')' block {}
+			| VOID ID '(' param_list ')' block {}
 			;
 
 param_list : param_list_non_empty {}
 		   | %empty {}
 		   ;
 param_list_non_empty : param {}
-		   			 | param COMMA param_list_non_empty {}
+		   			 | param ',' param_list_non_empty {}
 		   			 ;
 param : type ID {}
 	  ;
 
 // Statement block
-block : BRACE_OPEN var_decl_list statement_list BRACE_CLOSE {}
+block : '{' var_decl_list statement_list '}' {}
 	  ;
 
 var_decl_list : var_decl var_decl_list {}
 			  | %empty {}
 			  ;
-var_decl : type var_list SEMICOLON {}
+var_decl : type var_list ';' {}
 		 ;
 var_list : ID {}
-		 | ID COMMA var_list {}
+		 | ID ',' var_list {}
 		 ;
 
 
 statement_list : statement statement_list {}
 			   | %empty {}
 			   ;
-statement : location assign_op expr SEMICOLON {}
-		  | method_call SEMICOLON {}
-		  | IF PAR_OPEN expr PAR_CLOSE block else_block {} 
-		  | FOR ID ASSIGN expr COMMA expr block {}
-		  | BREAK SEMICOLON { $$ = new BreakStatement(); }
-		  | CONTINUE SEMICOLON { $$ = new ContinueStatement(); }
-		  | RETURN expr SEMICOLON { $$ = new ReturnStatement($2); }
-		  | RETURN SEMICOLON { $$ = new ReturnStatement(); }
+statement : location assign_op expr ';' {}
+		  | method_call ';' {}
+		  | IF '(' expr ')' block else_block {} 
+		  | FOR ID ASSIGN expr ',' expr block {}
+		  | BREAK ';' { $$ = new BreakStatement(); }
+		  | CONTINUE ';' { $$ = new ContinueStatement(); }
+		  | RETURN expr ';' { $$ = new ReturnStatement($2); }
+		  | RETURN ';' { $$ = new ReturnStatement(); }
 		  | block {}
 		  ;
 
@@ -176,7 +173,7 @@ expr : location { $$ = $1; }
 	 | method_call { $$ = NULL; }
 	 | literal { $$ = $1; }
 
-	 | PAR_OPEN expr PAR_CLOSE { $$ = $2; }
+	 | '(' expr ')' { $$ = $2; }
 	 
 	 | SUB expr %prec UMINUS { $$ = new UnaryMinus($2); }
 	 | NOT expr { $$ = new UnaryNot($2); }
@@ -199,15 +196,15 @@ expr : location { $$ = $1; }
 	 ;
 
 location : ID { std::string id($1); $$ = new VariableLocation(id); }
-		 | ID SQR_OPEN expr SQR_CLOSE { std::string id($1); $$ = new ArrayLocation(id, $3); }
+		 | ID '[' expr ']' { std::string id($1); $$ = new ArrayLocation(id, $3); }
 		 ;
 		 
 /* method calls */
-method_call : method_name PAR_OPEN args PAR_CLOSE {}
-			| CALLOUT PAR_OPEN STRING_LIT callout_arg_list PAR_CLOSE {}
+method_call : method_name '(' args ')' {}
+			| CALLOUT '(' STRING_LIT callout_arg_list ')' {}
 			;
 
-callout_arg_list : COMMA callout_arg callout_arg_list {}
+callout_arg_list : ',' callout_arg callout_arg_list {}
 				 | %empty {}
 				 ;
 callout_arg : arg {}
@@ -221,7 +218,7 @@ args : arg_list {}
 	 | %empty {} 
 	 ;
 arg_list : arg {}
-		 | arg COMMA arg_list {}
+		 | arg ',' arg_list {}
 		 ;
 arg: expr {}
    ;

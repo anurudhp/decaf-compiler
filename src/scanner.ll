@@ -5,6 +5,7 @@
 #include "scanner.hh"
 
 using token = Decaf::Parser::token;
+using token_type = Decaf::Parser::token_type;
 
 #define yyterminate() return token::END;
 
@@ -90,17 +91,8 @@ using token = Decaf::Parser::token;
 "+="					{return token::ASSIGN_ADD;}
 "-="					{return token::ASSIGN_SUB;}
 
- /*** Brackets ***/
-"("						{return token::PAR_OPEN;}
-")"						{return token::PAR_CLOSE;}
-"["						{return token::SQR_OPEN;}
-"]"						{return token::SQR_CLOSE;}
-"{"						{return token::BRACE_OPEN;}
-"}"						{return token::BRACE_CLOSE;}
-
- /*** Separators ***/
-";"						{return token::SEMICOLON;}
-","						{return token::COMMA;}
+ /*** Brackets and Separators ***/
+\(|\)|\[|\]|\{|\}|;|,	{return static_cast<token_type>(*yytext);}
 
  /*** Whitespaces/comments ***/
 [ \t]					{yylloc->step();}
