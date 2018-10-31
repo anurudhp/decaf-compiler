@@ -1,13 +1,11 @@
 #pragma once
 
-#include <string>
-#include <fstream>
-
 namespace Decaf {
 	class Scanner;
 	class Parser;
 
-	struct Driver {
+	class Driver {
+	public:
 		Scanner *scanner;
 		Parser *parser;
 	};

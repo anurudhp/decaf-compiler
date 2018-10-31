@@ -3,6 +3,11 @@ CC=g++
 FLEX_OPTS=
 BISON_OPTS=
 
+HEADERS=ast visitor
+SRCS=literals
+
+OBJS=$(patsubst %,build/%.o,$(SRCS))
+
 all: parser
 
 src/lex.yy.cc: src/scanner.ll
@@ -11,7 +16,20 @@ src/lex.yy.cc: src/scanner.ll
 src/parser.tab.cc: src/parser.yy src/lex.yy.cc
 	bison -o $@ -d $< $(BISON_OPTS)
 
-bin/decaf: src/parser.tab.cc src/lex.yy.cc
+build/%.o: src/astnodes/%.cc src/astnodes/%.hh
+	$(CC) -c -o $@ $< $(CC_OPTS)
+
+build/%.o: src/visitors/%.cc scr/visitors/%.hh
+	$(CC) -c -o $@ $< $(CC_OPTS)
+
+
+build/lex.o: src/lex.yy.cc src/parser.tab.cc
+	$(CC) -c -o $@ $< $(CC_OPTS)
+
+build/parser.o: src/parser.tab.cc
+	$(CC) -c -o $@ $< $(CC_OPTS)
+
+bin/decaf: build/lex.o build/parser.o $(OBJS)
 	$(CC) -o $@ $^ $(CC_OPTS)
 
 parser: bin/decaf

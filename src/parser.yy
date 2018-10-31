@@ -203,8 +203,9 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	Decaf::Driver driver;
 
+	Decaf::Driver driver;
+	
 	driver.scanner = new Decaf::Scanner(&fin);
 	driver.parser = new Decaf::Parser(driver);
 
@@ -218,5 +219,5 @@ int main(int argc, char **argv) {
 
 void Decaf::Parser::error(const location_type& loc, const std::string& err) {
 	std::cerr << "[" << loc << "] " 
-			  << "error: " << err << std::endl;
+				  << "error: " << err << std::endl;
 }
