@@ -10,7 +10,8 @@
 		class Scanner;
 		class Driver;
 	}
-	#include "astnodes/ast.hh"
+	class ASTnode;
+	enum class OperatorType;
 }
 
 %parse-param {Driver& driver}
@@ -26,6 +27,8 @@
 // AST node classes
 #include "astnodes/ast.hh"
 #include "astnodes/literals.hh"
+#include "astnodes/operators.hh"
+#include "astnodes/variables.hh"
 
 #undef yylex
 #define yylex driver.scanner->yylex
@@ -33,10 +36,14 @@
 }
 
 %union {
-	ASTnode *ast;
+	// primitive types
 	int ival;
 	bool bval;
 	char *sval;
+
+	// complex types
+	ASTnode *ast;
+	OperatorType op;
 }
 
 %token END 0
@@ -63,8 +70,11 @@
 %token BRACE_OPEN BRACE_CLOSE
 %token SEMICOLON COMMA
 
-%type <ast> literal
+ /* non-terminals */
+%type <ast> literal expr location
+%type <op> assign_op
 
+ /* priorities and precedence */
 %left OR
 %left AND
 %nonassoc EQ NE 
@@ -148,40 +158,40 @@ else_block : ELSE block {}
 		   | %empty {}
 		   ;
 
-assign_op : ASSIGN {}
-		  | ASSIGN_ADD {}
-		  | ASSIGN_SUB {}
+assign_op : ASSIGN     { $$ = OperatorType::ASSIGN; }
+		  | ASSIGN_ADD { $$ = OperatorType::ASSIGN_ADD; }
+		  | ASSIGN_SUB { $$ = OperatorType::ASSIGN_SUB; }
 		  ;
 
 /* Expressions */
-expr : location {}
-	 | method_call {}
-	 | literal {}
+expr : location { $$ = $1; }
+	 | method_call { $$ = NULL; }
+	 | literal { $$ = $1; }
 
-	 | PAR_OPEN expr PAR_CLOSE {}
+	 | PAR_OPEN expr PAR_CLOSE { $$ = $2; }
 	 
-	 | SUB expr %prec UMINUS {}
-	 | NOT expr {}
+	 | SUB expr %prec UMINUS { $$ = new UnaryMinus($2); }
+	 | NOT expr { $$ = new UnaryNot($2); }
 	 
-	 | expr ADD expr {} 
-	 | expr SUB expr {}
-	 | expr MUL expr {}
-	 | expr DIV expr {}
-	 | expr MOD expr {}
+	 | expr ADD expr { $$ = new ArithBinOperator(OperatorType::ADD, $1, $3); } 
+	 | expr SUB expr { $$ = new ArithBinOperator(OperatorType::SUB, $1, $3); }
+	 | expr MUL expr { $$ = new ArithBinOperator(OperatorType::MUL, $1, $3); }
+	 | expr DIV expr { $$ = new ArithBinOperator(OperatorType::DIV, $1, $3); }
+	 | expr MOD expr { $$ = new ArithBinOperator(OperatorType::MOD, $1, $3); }
 	 
-	 | expr AND expr {}
-	 | expr OR expr {}
+	 | expr AND expr { $$ = new CondBinOperator(OperatorType::AND, $1, $3); }
+	 | expr OR expr  { $$ = new CondBinOperator(OperatorType::OR, $1, $3); }
 
-	 | expr LE expr {} 
-	 | expr LT expr {} 
-	 | expr GE expr {}
-	 | expr GT expr {}
-	 | expr EQ expr {}
-	 | expr NE expr {}
+	 | expr LE expr  { $$ = new RelBinOperator(OperatorType::LE, $1, $3); } 
+	 | expr LT expr  { $$ = new RelBinOperator(OperatorType::LT, $1, $3); } 
+	 | expr GE expr  { $$ = new RelBinOperator(OperatorType::GE, $1, $3); }
+	 | expr GT expr  { $$ = new RelBinOperator(OperatorType::GT, $1, $3); }
+	 | expr EQ expr  { $$ = new EqBinOperator(OperatorType::EQ, $1, $3); }
+	 | expr NE expr  { $$ = new EqBinOperator(OperatorType::NE, $1, $3); }
 	 ;
 
-location : ID {}
-		 | ID SQR_OPEN expr SQR_CLOSE {}
+location : ID { std::string id($1); $$ = new VariableLocation(id); }
+		 | ID SQR_OPEN expr SQR_CLOSE { std::string id($1); $$ = new ArrayLocation(id, $3); }
 		 ;
 		 
 /* method calls */

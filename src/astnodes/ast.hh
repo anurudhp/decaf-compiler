@@ -1,9 +1,5 @@
 #pragma once
 
-enum class static_type {
-	INT, BOOL, STRING, VOID, NONE 
-};
-
 class ASTvisitor;
 
 class ASTnode {

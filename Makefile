@@ -4,7 +4,7 @@ FLEX_OPTS=
 BISON_OPTS=
 
 HEADERS=ast visitor
-SRCS=literals
+SRCS=literals operators variables
 
 OBJS=$(patsubst %,build/%.o,$(SRCS))
 
