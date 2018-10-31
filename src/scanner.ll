@@ -16,76 +16,101 @@ using token = Decaf::Parser::token;
 %option yyclass="Decaf::Scanner"
 %option noyywrap
 %option nodefault
+%option debug
 
 %%
 %{
 	yylloc->step();	
 %}
 
-[0-9]*					{printf("<dec>"); return token::INT_LIT;}
-0x[0-9a-fA-F]*			{printf("<hex>"); return token::INT_LIT;}
-\'.\'					{printf("<char>"); return token::CHAR_LIT;}
-\".*\"					{printf("<string[%lu]: %s>", strlen(yytext), yytext); return token::STRING_LIT;}
-(true|false) 			{printf("<bool>"); return token::BOOL_LIT;}
+ /*** literals ***/
+[0-9]*  { 
+	yylval->ival = atoi(yytext);
+	return token::INT_LIT;
+}
+0x[0-9a-fA-F]*	{
+	yylval->ival = strtol(yytext, NULL, 16);
+	return token::INT_LIT;
+}
+\'.\' {
+	yylval->ival = *yytext;
+	return token::CHAR_LIT;
+}
+\".*\"	{
+	yylval->sval = strdup(yytext);
+	return token::STRING_LIT;
+}
+(true|false)  {
+	yylval->bval = strcmp(yytext, "true") == 0;
+	std::cerr << std::boolalpha << yylval->bval << '\n'; 
+	return token::BOOL_LIT;
+}
 
  /*** keywords ***/
-"int" 					{printf("<keyword, %s>", yytext); return token::INT;} 
-"boolean"				{printf("<keyword, %s>", yytext); return token::BOOL;}
-"void"					{printf("<keyword, %s>", yytext); return token::VOID;}
-"class"					{printf("<%s>", yytext); return token::CLASS;}
-"if"					{printf("<keyword, %s>", yytext); return token::IF;}
-"else"					{printf("<keyword, %s>", yytext); return token::ELSE;}
-"for"					{printf("<keyword, %s>", yytext); return token::FOR;}
-"break"					{printf("<keyword, %s>", yytext); return token::BREAK;}
-"continue"				{printf("<keyword, %s>", yytext); return token::CONTINUE;}
-"return"				{printf("<keyword, %s>", yytext); return token::RETURN;}
-"callout"				{printf("<keyword, %s>", yytext); return token::CALLOUT;}
+"int" 					{return token::INT;} 
+"boolean"				{return token::BOOL;}
+"void"					{return token::VOID;}
+"class"					{return token::CLASS;}
+"if"					{return token::IF;}
+"else"					{return token::ELSE;}
+"for"					{return token::FOR;}
+"break"					{return token::BREAK;}
+"continue"				{return token::CONTINUE;}
+"return"				{return token::RETURN;}
+"callout"				{return token::CALLOUT;}
 
-[a-zA-Z_][a-zA-Z0-9_]*	{printf("<ID>"); return token::ID;}
+[a-zA-Z_][a-zA-Z0-9_]*	{
+	yylval->sval = strdup(yytext);
+	return token::ID;
+}
 
  /**** Operators ****/
 	/* Arithmetic */
-"+"						{printf("<op, %s>", yytext); return token::ADD;}
-"-"						{printf("<op, %s>", yytext); return token::SUB;}
-"*"						{printf("<op, %s>", yytext); return token::MUL;}
-"/"						{printf("<op, %s>", yytext); return token::DIV;}
-"%"						{printf("<op, %s>", yytext); return token::MOD;}
+"+"						{return token::ADD;}
+"-"						{return token::SUB;}
+"*"						{return token::MUL;}
+"/"						{return token::DIV;}
+"%"						{return token::MOD;}
 
 	/* Logical */
-"&&"					{printf("<op, %s>", yytext); return token::AND;}
-"||"					{printf("<op, %s>", yytext); return token::OR;}
-"!"						{printf("<op, %s>", yytext); return token::NOT;}
+"&&"					{return token::AND;}
+"||"					{return token::OR;}
+"!"						{return token::NOT;}
 
 	/* Relational */
-">"						{printf("<op, %s>", yytext); return token::GT;}
-"<"						{printf("<op, %s>", yytext); return token::LT;}
-">="					{printf("<op, %s>", yytext); return token::GE;}
-"<="					{printf("<op, %s>", yytext); return token::LE;}
+">"						{return token::GT;}
+"<"						{return token::LT;}
+">="					{return token::GE;}
+"<="					{return token::LE;}
 
-"=="					{printf("<op, %s>", yytext); return token::EQ;}
-"!="					{printf("<op, %s>", yytext); return token::NE;}
+"=="					{return token::EQ;}
+"!="					{return token::NE;}
 
 	/* Assignment */
-"="						{printf("<assign, %s>", yytext); return token::ASSIGN;}
-"+="					{printf("<assign, %s>", yytext); return token::ASSIGN_ADD;}
-"-="					{printf("<assign, %s>", yytext); return token::ASSIGN_SUB;}
+"="						{return token::ASSIGN;}
+"+="					{return token::ASSIGN_ADD;}
+"-="					{return token::ASSIGN_SUB;}
 
  /*** Brackets ***/
-"("						{printf("%s", yytext); return token::PAR_OPEN;}
-")"						{printf("%s", yytext); return token::PAR_CLOSE;}
-"["						{printf("%s", yytext); return token::SQR_OPEN;}
-"]"						{printf("%s", yytext); return token::SQR_CLOSE;}
-"{"						{printf("%s", yytext); return token::BRACE_OPEN;}
-"}"						{printf("%s", yytext); return token::BRACE_CLOSE;}
+"("						{return token::PAR_OPEN;}
+")"						{return token::PAR_CLOSE;}
+"["						{return token::SQR_OPEN;}
+"]"						{return token::SQR_CLOSE;}
+"{"						{return token::BRACE_OPEN;}
+"}"						{return token::BRACE_CLOSE;}
 
  /*** Separators ***/
-";"						{printf("%s", yytext); return token::SEMICOLON;}
-","						{printf("%s", yytext); return token::COMMA;}
+";"						{return token::SEMICOLON;}
+","						{return token::COMMA;}
 
  /*** Whitespaces/comments ***/
-[ \t]					{yylloc->step(); printf("%s", yytext);}
+[ \t]					{yylloc->step();}
 "//".*					{}
-\n 						{yylloc->lines(yyleng); yylloc->step(); printf("\n");}
-.						{ printf("Line No %d: Unrecognized Character `%s`\n", lineno(), yytext); }
+\n 						{yylloc->lines(yyleng); yylloc->step();}
+.	{ 
+	std::cerr << "Line No " << lineno() 
+			  << ": Unrecognized Character "
+			  << yytext << std::endl; 
+}
 
 %%
