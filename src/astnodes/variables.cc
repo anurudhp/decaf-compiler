@@ -11,3 +11,9 @@ void VariableLocation::accept(ASTvisitor& V) {
 void ArrayLocation::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
+
+// VarDecl
+
+// void VariableDeclaration::accept(ASTvisitor& V) {
+// 	V.visit(*this);
+// }

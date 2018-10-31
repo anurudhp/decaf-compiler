@@ -12,6 +12,7 @@
 	}
 	class ASTnode;
 	enum class OperatorType;
+	enum class ValueType;
 }
 
 %parse-param {Driver& driver}
@@ -29,6 +30,7 @@
 #include "astnodes/literals.hh"
 #include "astnodes/operators.hh"
 #include "astnodes/variables.hh"
+#include "astnodes/statements.hh"
 
 #undef yylex
 #define yylex driver.scanner->yylex
@@ -44,6 +46,10 @@
 	// complex types
 	ASTnode *ast;
 	OperatorType op;
+	ValueType vt;
+
+	// vectors
+
 }
 
 %token END 0
@@ -71,8 +77,10 @@
 %token SEMICOLON COMMA
 
  /* non-terminals */
-%type <ast> literal expr location
+%type <ast> literal location
+%type <ast> expr statement  
 %type <op> assign_op
+%type <vt> type
 
  /* priorities and precedence */
 %left OR
@@ -92,8 +100,8 @@ program : CLASS ID BRACE_OPEN field_decl_list method_decl_list BRACE_CLOSE {}
 
 /* Field(data) declarations */
 
-type : INT {}
-	 | BOOL {}
+type : INT { $$ = ValueType::INT; }
+	 | BOOL { $$ = ValueType::BOOL; }
 	 ;
 
 field_decl_list : field_decl_list field_decl {}
@@ -147,10 +155,10 @@ statement : location assign_op expr SEMICOLON {}
 		  | method_call SEMICOLON {}
 		  | IF PAR_OPEN expr PAR_CLOSE block else_block {} 
 		  | FOR ID ASSIGN expr COMMA expr block {}
-		  | BREAK SEMICOLON {}
-		  | CONTINUE SEMICOLON {}
-		  | RETURN expr SEMICOLON {}
-		  | RETURN SEMICOLON {}
+		  | BREAK SEMICOLON { $$ = new BreakStatement(); }
+		  | CONTINUE SEMICOLON { $$ = new ContinueStatement(); }
+		  | RETURN expr SEMICOLON { $$ = new ReturnStatement($2); }
+		  | RETURN SEMICOLON { $$ = new ReturnStatement(); }
 		  | block {}
 		  ;
 
