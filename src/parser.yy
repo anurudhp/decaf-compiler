@@ -8,10 +8,11 @@
 %code requires {
 	namespace Decaf {
 		class Scanner;
+		class Driver;
 	}
 }
 
-%parse-param {Scanner& scanner}
+%parse-param {Driver& driver}
 
 %code {
 #include <iostream>	
@@ -19,9 +20,10 @@
 #include <string>
 
 #include "scanner.hh"
+#include "driver.hh"
 
 #undef yylex
-#define yylex scanner.yylex
+#define yylex driver.scanner->yylex
 }
 
 %token END 0
@@ -201,13 +203,15 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	Decaf::Scanner *scanner = new Decaf::Scanner(&fin);
-	Decaf::Parser *parser = new Decaf::Parser(*scanner);
-	if (parser->parse() != 0) {
+	Decaf::Driver driver;
+
+	driver.scanner = new Decaf::Scanner(&fin);
+	driver.parser = new Decaf::Parser(driver);
+
+	if (driver.parser->parse() != 0) {
 		std::cerr << "Parsing failed!\n";
 		return 1;
 	}
-
 
 	return 0;
 }

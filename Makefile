@@ -23,7 +23,7 @@ test: parser
 	done;
 
 clean:
-	@rm -rf bin/*
+	@rm -rf bin/* build/*
 	@rm -f src/lex.yy.cc src/parser.tab.* src/stack.hh src/location.hh src/position.hh src/parser.output 
 
 .PHONY: clean test parser
