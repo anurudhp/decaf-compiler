@@ -42,7 +42,6 @@ using token = Decaf::Parser::token;
 }
 (true|false)  {
 	yylval->bval = strcmp(yytext, "true") == 0;
-	std::cerr << std::boolalpha << yylval->bval << '\n'; 
 	return token::BOOL_LIT;
 }
 
