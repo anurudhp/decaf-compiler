@@ -124,7 +124,8 @@
 %%
 program : CLASS ID '{' field_decl_list method_decl_list '}' {
 																if (std::string($2) != "Program") {
-																	std::cerr << "! error: Class name has to be `Program`\n";
+																	driver.parser->error(@$, "Class name has to be `Program`");
+																	//std::cerr << "! error: Class name has to be `Program`\n";
 																	driver.root = NULL;
 																	return 1;
 																}
