@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-
 #include "../location.hh"
 
 class ASTvisitor;

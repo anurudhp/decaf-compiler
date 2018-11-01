@@ -2,7 +2,7 @@
 #include "../visitors/visitor.hh"
 
 StatementBlock::~StatementBlock() {
-	for (auto& statement: statements) {
+	for (auto statement: statements) {
 		delete statement;
 	}
 }

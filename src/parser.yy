@@ -252,9 +252,9 @@ statement_list : statement statement_list   {
 			   | %empty { $$ = new std::vector<ASTnode *>(); }
 			   ;
 statement : location assign_op expr ';' { $$ = new AssignStatement($2, $1, $3); }
-		  | method_call ';' {}
-		  | IF '(' expr ')' block else_block {} 
-		  | FOR ID ASSIGN expr ',' expr block {}
+		  | method_call ';' { $$ = $1; }
+		  | IF '(' expr ')' block else_block { $$ = new IfStatement($3, $5, $6); }
+		  | FOR ID ASSIGN expr ',' expr block { $$ = new ForStatement($2, $4, $6, $7); }
 		  | BREAK ';' { $$ = new BreakStatement(); }
 		  | CONTINUE ';' { $$ = new ContinueStatement(); }
 		  | RETURN expr ';' { $$ = new ReturnStatement($2); }
@@ -364,6 +364,8 @@ int main(int argc, char **argv) {
 	}
 
 	// program at driver.root
+
+	delete driver.root;
 
 	return 0;
 }

@@ -2,7 +2,7 @@
 #include "../visitors/visitor.hh"
 
 Program::~Program() {
-	for (auto& method: methods) {
+	for (auto method: methods) {
 		delete method;
 	}
 }
