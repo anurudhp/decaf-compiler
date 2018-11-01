@@ -1,7 +1,11 @@
 #include "literals.hh"
 #include "../visitors/visitor.hh"
 
-// void IntegerLiteral::IntegerLiteral(
+#include "variables.hh"
+
+void Literal::accept(ASTvisitor& V) {
+	V.visit(*this);
+}
 
 void IntegerLiteral::accept(ASTvisitor& V) {
 	V.visit(*this);

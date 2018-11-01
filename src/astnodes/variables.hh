@@ -1,12 +1,13 @@
 #pragma once
 
-#include "ast.hh"
 #include <string>
 #include <vector>
 
+#include "ast.hh"
+
 enum class ValueType {
 	VOID, NONE,
-	INT, BOOL, CHAR,
+	INT, BOOL, CHAR, STRING,
 	INT_ARRAY, BOOL_ARRAY
 };
 
@@ -41,26 +42,18 @@ public:
 
 /*** Variable Declarations ***/
 
-/* TODO
-struct Variable {
+struct VariableDeclaration {
 	std::string id;
+	ValueType type;
+
+	VariableDeclaration(std::string _id, ValueType _type = ValueType::NONE)
+	: id(_id), type(_type) {}
+};
+
+struct ArrayDeclaration : public VariableDeclaration {
 	int array_len;
 
-	Variable(std::string _id)
-	: id(_id), array_len(0) {}
-
-	Variable(std::string _id, ValueType _type, int len)
-	: id(_id), array_len(len) {}
+	ArrayDeclaration(std::string _id, int _len, ValueType _type = ValueType::NONE)
+	: VariableDeclaration(_id, _type), array_len(_len) {}
 };
 
-class VariableDeclaration : public ASTnode {
-public:
-	VariableDeclaration(ValueType _type, std::vector<Variable> _vars)
-	: type(_type), variables(_vars) {}
-
-	virtual void accept(ASTvisitor& V);
-
-	ValueType type;
-	std::vector<Variable> variables;
-};
-*/

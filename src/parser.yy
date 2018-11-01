@@ -10,9 +10,14 @@
 		class Scanner;
 		class Driver;
 	}
-	class ASTnode;
 	enum class OperatorType;
 	enum class ValueType;
+
+	class ASTnode;
+	class Location;
+	class VariableDeclaration;
+	class StatementBlock;
+	class MethodDeclaration;
 }
 
 %parse-param {Driver& driver}
@@ -21,6 +26,7 @@
 #include <iostream>	
 #include <fstream>
 #include <string>
+#include <cassert>
 
 #include "scanner.hh"
 #include "driver.hh"
@@ -31,6 +37,8 @@
 #include "astnodes/operators.hh"
 #include "astnodes/variables.hh"
 #include "astnodes/statements.hh"
+#include "astnodes/blocks.hh"
+#include "astnodes/methods.hh"
 
 #undef yylex
 #define yylex driver.scanner->yylex
@@ -43,17 +51,27 @@
 	bool bval;
 	char *sval;
 
-	// complex types
-	ASTnode *ast;
+	// enum/struct types
 	OperatorType op;
 	ValueType vt;
+	VariableDeclaration *decl;
+
+	// AST types
+	ASTnode *ast;
+	Location *loc;
+	StatementBlock *block;
+	MethodDeclaration *method;
 
 	// vectors
-
+	std::vector<VariableDeclaration> *var_decl;
+	std::vector<ASTnode *> *nodes;
+	std::vector<MethodDeclaration *> *methods;
 }
 
+ /**********************
+ ***    TOKENS       *** 
+ **********************/
 %token END 0
-
 
  /* keywords */
 %token CLASS IF ELSE FOR BREAK CONTINUE RETURN CALLOUT
@@ -74,10 +92,19 @@
 %token '(' ')' '[' ']' '{' '}' ',' ';'
 
  /* non-terminals */
-%type <ast> literal location
-%type <ast> expr statement  
 %type <op> assign_op
 %type <vt> type
+%type <decl> param glob_var_decl
+
+%type <ast> literal expr statement
+%type <block> block else_block
+%type <loc> location
+%type <method> method_decl
+
+%type <var_decl> var_decl_list var_decl var_list 
+%type <var_decl> param_list param_list_non_empty
+%type <nodes> statement_list
+%type <methods> method_decl_list
 
  /* priorities and precedence */
 %left OR
@@ -110,45 +137,91 @@ field_decl : type glob_var_decl_list ';' {}
 glob_var_decl_list : glob_var_decl {}
 				   | glob_var_decl ',' glob_var_decl_list {}
 				   ;
-glob_var_decl : ID {}
-			  | ID '[' INT_LIT ']' {}
+glob_var_decl : ID { $$ = new VariableDeclaration(std::string($1)); }
+			  | ID '[' INT_LIT ']' { $$ = new ArrayDeclaration(std::string(std::string($1)), $3); }
 			  ;
 
 /* Function(method) declarations */
-method_decl_list : method_decl_list method_decl {}
-				 | method_decl {}
+method_decl_list : method_decl_list method_decl {
+													$$ = $1;
+													$$->push_back($2);
+												}
+				 | method_decl 	{
+				 					$$ = new std::vector<MethodDeclaration *>();
+				 					$$->push_back($1);
+				 				}
 				 ;
-method_decl : type ID '(' param_list ')' block {}
-			| VOID ID '(' param_list ')' block {}
+method_decl : type ID '(' param_list ')' block {
+													$$ = new MethodDeclaration($1, $2, *$4, $6);
+													delete $4;
+											}
+			| VOID ID '(' param_list ')' block {
+													$$ = new MethodDeclaration(ValueType::VOID, $2, *$4, $6);
+													delete $4;
+											}
 			;
 
-param_list : param_list_non_empty {}
-		   | %empty {}
+param_list : param_list_non_empty { $$ = $1; }
+		   | %empty { $$ = new std::vector<VariableDeclaration>(); }
 		   ;
-param_list_non_empty : param {}
-		   			 | param ',' param_list_non_empty {}
+param_list_non_empty : param {
+								$$ = new std::vector<VariableDeclaration>();
+								$$->push_back(*$1);
+								delete $1;
+							 }
+		   			 | param ',' param_list_non_empty { 
+		   			 									$$ = $3; 
+		   			 									$$->push_back(*$1);
+		   			 									delete $1;
+		   			 								}
 		   			 ;
-param : type ID {}
+param : type ID { $$ = new VariableDeclaration(std::string($2), $1); }
 	  ;
 
 // Statement block
-block : '{' var_decl_list statement_list '}' {}
+block : '{' var_decl_list statement_list '}' { 
+												std::cerr << ">> Block\n";
+												$$ = new StatementBlock(*$2, *$3); 
+												delete $2;
+												delete $3;
+												std::cerr << "<< Block\n";
+											 }
 	  ;
 
-var_decl_list : var_decl var_decl_list {}
-			  | %empty {}
+var_decl_list : var_decl var_decl_list  { 
+											std::cerr << ">> Merging variable list\n";
+											$$ = $2;
+											$$->insert($$->end(), $1->begin(), $1->end());
+											delete $1;
+											std::cerr << "<< Merging variable list\n";
+										}
+			  | %empty { $$ = new std::vector<VariableDeclaration>(); std::cerr << ">> Init. var list\n"; }
 			  ;
-var_decl : type var_list ';' {}
+var_decl : type var_list ';' {
+								$$ = $2;
+								for (auto& elem: *$$) {
+									elem.type = $1;
+								}
+							 }
 		 ;
-var_list : ID {}
-		 | ID ',' var_list {}
+var_list : ID { 
+				$$ = new std::vector<VariableDeclaration>(); 
+				$$->emplace_back($1, ValueType::NONE); 
+			  }
+		 | ID ',' var_list  {
+								$$ = $3;
+								$$->emplace_back($1, ValueType::NONE);
+							}
 		 ;
 
 
-statement_list : statement statement_list {}
-			   | %empty {}
+statement_list : statement statement_list   {
+												$$ = $2;
+												$$->push_back($1);
+											}
+			   | %empty { $$ = new std::vector<ASTnode *>(); }
 			   ;
-statement : location assign_op expr ';' {}
+statement : location assign_op expr ';' { $$ = new AssignOperator($2, $1, $3); }
 		  | method_call ';' {}
 		  | IF '(' expr ')' block else_block {} 
 		  | FOR ID ASSIGN expr ',' expr block {}
@@ -156,11 +229,11 @@ statement : location assign_op expr ';' {}
 		  | CONTINUE ';' { $$ = new ContinueStatement(); }
 		  | RETURN expr ';' { $$ = new ReturnStatement($2); }
 		  | RETURN ';' { $$ = new ReturnStatement(); }
-		  | block {}
+		  | block { $$ = $1; }
 		  ;
 
-else_block : ELSE block {}
-		   | %empty {}
+else_block : ELSE block { $$ = $2; }
+		   | %empty { $$ = NULL; }
 		   ;
 
 assign_op : ASSIGN     { $$ = OperatorType::ASSIGN; }

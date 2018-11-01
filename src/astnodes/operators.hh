@@ -2,6 +2,7 @@
 
 #include <string>
 #include "ast.hh"
+#include "variables.hh"
 
 enum class OperatorType {
 	// unary
@@ -102,10 +103,14 @@ public:
 };
 
 // Assignment 
-class AssignOperator : public BinaryOperator {
+class AssignOperator : public ASTnode {
 	public:
-	AssignOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
-	: BinaryOperator(_op, _lval, _rval) {}
+	AssignOperator(OperatorType _op, Location *_lloc, ASTnode *_rval)
+	: op(_op), lloc(_lloc), rval(_rval) {}
 
 	virtual void accept(ASTvisitor& V);
+
+	OperatorType op;
+	Location *lloc;
+	ASTnode *rval;
 };

@@ -1,60 +1,47 @@
 #pragma once
 
-#include "ast.hh"
 #include <string>
 
-class Statement : public ASTnode {
-public:
-	Statement(ASTnode *_expr)
-	: expr(_expr) {}
+#include "ast.hh"
 
-	virtual void accept(ASTvisitor& V);
-
-	ASTnode *expr;
-};
-
-class ReturnStatement : public Statement {
+class ReturnStatement : public ASTnode {
 public:
 	ReturnStatement(ASTnode *expr = NULL)
-	: Statement(NULL), ret_expr(expr) {}
+	: ret_expr(expr) {}
 
 	virtual void accept(ASTvisitor& V);
 
 	ASTnode *ret_expr;
 };
 
-class BreakStatement : public Statement {
+class BreakStatement : public ASTnode {
 public:
-	BreakStatement()
-	: Statement(NULL) {}
+	BreakStatement() {}
 
 	virtual void accept(ASTvisitor& V);
 };	
 
-class ContinueStatement : public Statement {
+class ContinueStatement : public ASTnode {
 public:
-	ContinueStatement()
-	: Statement(NULL) {}
+	ContinueStatement() {}
 
 	virtual void accept(ASTvisitor& V);
 };
 
-class IfStatement : public Statement {
+class IfStatement : public ASTnode {
 public:
 	IfStatement(ASTnode *cond, ASTnode *tb, ASTnode *eb)
-	: Statement(NULL),
-	 cond_expr(cond), then_block(tb), else_block(eb) {}
+	: cond_expr(cond), then_block(tb), else_block(eb) {}
 
 	virtual void accept(ASTvisitor& V);
 	
 	ASTnode *cond_expr, *then_block, *else_block;
 };
 
-class ForStatement : public Statement {
+class ForStatement : public ASTnode {
 public:
-	ForStatement(std::string _id, ASTnode *st, ASTnode *en, ASTnode *b)
-	: Statement(NULL), iterator_id(_id), 
-	 start_expr(st), end_expr(en), block(b) {}
+	ForStatement(const std::string _id, ASTnode *st, ASTnode *en, ASTnode *b)
+	: iterator_id(_id), start_expr(st), end_expr(en), block(b) {}
 
 	virtual void accept(ASTvisitor& V);
 
@@ -62,10 +49,10 @@ public:
 	ASTnode *start_expr, *end_expr, *block;
 };
 
-class AssignStatement : public Statement {
+class AssignStatement : public ASTnode {
 public:
 	AssignStatement(class Location *loc, ASTnode *expr)
-	: Statement(NULL), location(loc), rval(expr) {}
+	: location(loc), rval(expr) {}
 
 	virtual void accept(ASTvisitor& V);
 

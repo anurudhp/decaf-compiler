@@ -1,11 +1,6 @@
 #include "statements.hh"
 #include "../visitors/visitor.hh"
 
-
-void Statement::accept(ASTvisitor& V) {
-	V.visit(*this);
-}
-
 void ReturnStatement::accept(ASTvisitor& V) {
 	V.visit(*this);
 }

@@ -1,10 +1,10 @@
-CC_OPTS=-std=c++14 -Wall -ll
+CC_OPTS=-std=c++14 -Wall -ll -g
 CC=g++
 FLEX_OPTS=
 BISON_OPTS=
 
 HEADERS=ast visitor
-SRCS=literals operators variables statements
+SRCS=literals operators variables statements blocks methods
 
 OBJS=$(patsubst %,build/%.o,$(SRCS))
 
