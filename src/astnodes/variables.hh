@@ -17,6 +17,7 @@ class Location : public ASTnode {
 public:
 	Location(std::string _id, ASTnode *_index)
 	: id(_id), index_expr(_index) {}
+	virtual ~Location();
 
 	virtual void accept(ASTvisitor& V);
 
@@ -28,6 +29,7 @@ class VariableLocation : public Location {
 public:
 	VariableLocation(std::string id)
 	: Location(id, NULL) {}
+	virtual ~VariableLocation() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
@@ -36,6 +38,7 @@ class ArrayLocation : public Location {
 public:
 	ArrayLocation(std::string id, ASTnode *index)
 	: Location(id, index) {}
+	virtual ~ArrayLocation() = default;
 
 	virtual void accept(ASTvisitor& V);
 };

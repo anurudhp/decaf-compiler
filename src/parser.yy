@@ -23,26 +23,27 @@
 %parse-param {Driver& driver}
 
 %code {
-#include <iostream>	
-#include <fstream>
-#include <string>
-#include <cassert>
+	#include <iostream>	
+	#include <fstream>
+	#include <string>
+	#include <cassert>
+	#include <sstream>
 
-#include "scanner.hh"
-#include "driver.hh"
+	#include "scanner.hh"
+	#include "driver.hh"
 
-// AST node classes
-#include "astnodes/ast.hh"
-#include "astnodes/literals.hh"
-#include "astnodes/operators.hh"
-#include "astnodes/variables.hh"
-#include "astnodes/statements.hh"
-#include "astnodes/blocks.hh"
-#include "astnodes/methods.hh"
-#include "astnodes/program.hh"
+	// AST node classes
+	#include "astnodes/ast.hh"
+	#include "astnodes/literals.hh"
+	#include "astnodes/operators.hh"
+	#include "astnodes/variables.hh"
+	#include "astnodes/statements.hh"
+	#include "astnodes/blocks.hh"
+	#include "astnodes/methods.hh"
+	#include "astnodes/program.hh"
 
-#undef yylex
-#define yylex driver.scanner->yylex
+	#undef yylex
+	#define yylex driver.scanner->yylex
 
 }
 
@@ -124,8 +125,7 @@
 %%
 program : CLASS ID '{' field_decl_list method_decl_list '}' {
 																if (std::string($2) != "Program") {
-																	driver.parser->error(@$, "Class name has to be `Program`");
-																	//std::cerr << "! error: Class name has to be `Program`\n";
+																	driver.parser->error(@2, "Class name has to be `Program`");
 																	driver.root = NULL;
 																	return 1;
 																}
@@ -186,6 +186,7 @@ method_decl_list : method_decl_list method_decl {
 				 ;
 method_decl : type ID '(' param_list ')' block {
 													$$ = new MethodDeclaration($1, $2, *$4, $6);
+													$$->set_location(@$);
 													delete $4;
 											}
 			| VOID ID '(' param_list ')' block {
@@ -250,7 +251,7 @@ statement_list : statement statement_list   {
 											}
 			   | %empty { $$ = new std::vector<ASTnode *>(); }
 			   ;
-statement : location assign_op expr ';' { $$ = new AssignOperator($2, $1, $3); }
+statement : location assign_op expr ';' { $$ = new AssignStatement($2, $1, $3); }
 		  | method_call ';' {}
 		  | IF '(' expr ')' block else_block {} 
 		  | FOR ID ASSIGN expr ',' expr block {}

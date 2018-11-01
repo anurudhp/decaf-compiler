@@ -1,10 +1,17 @@
 #include "operators.hh"
 #include "../visitors/visitor.hh"
 
+UnaryOperator::~UnaryOperator() {
+	delete val;
+}
 void UnaryOperator::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
+BinaryOperator::~BinaryOperator() {
+	delete lval;
+	delete rval;
+}
 void BinaryOperator::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
@@ -28,9 +35,5 @@ void UnaryMinus::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 void UnaryNot::accept(ASTvisitor& V) {
-	V.visit(*this);
-}
-
-void AssignOperator::accept(ASTvisitor& V) {
 	V.visit(*this);
 }

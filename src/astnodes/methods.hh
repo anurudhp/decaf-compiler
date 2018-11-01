@@ -15,6 +15,7 @@ public:
 	  return_type(_rtype), 
 	  parameters(_params),
 	  body(_body) {}
+	virtual ~MethodDeclaration();
 
 	virtual void accept(ASTvisitor& V);
 
@@ -29,6 +30,7 @@ class MethodCall : public ASTnode {
 public:
 	MethodCall(std::string _id, std::vector<ASTnode *> args)
 	: id(_id), arguments(args) {}
+	virtual ~MethodCall();
 
 	virtual void accept(ASTvisitor& V);
 	
@@ -40,6 +42,7 @@ class CalloutCall : public MethodCall {
 public:
 	CalloutCall(std::string _id, std::vector<ASTnode *> args)
 	: MethodCall(_id, args) {}
+	virtual ~CalloutCall() = default;
 	
 	virtual void accept(ASTvisitor& V);
 };

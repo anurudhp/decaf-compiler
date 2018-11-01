@@ -26,24 +26,26 @@ enum class OperatorType {
 
 class UnaryOperator : public ASTnode {
 public:
-	OperatorType op;
-	ASTnode *val;
-
 	UnaryOperator(OperatorType _op, ASTnode *_val)
 	: op(_op), val(_val) {}
+	virtual ~UnaryOperator();
 
 	virtual void accept(ASTvisitor& V);
+	
+	OperatorType op;
+	ASTnode *val;
 };
 
 class BinaryOperator : public ASTnode {
 public:
-	OperatorType op;
-	ASTnode *lval, *rval;
-
 	BinaryOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
 	: op(_op), lval(_lval), rval(_rval) {}
+	virtual ~BinaryOperator();
 
 	virtual void accept(ASTvisitor& V);
+	
+	OperatorType op;
+	ASTnode *lval, *rval;
 };
 
 /*** Derived Operator Classes ***/
@@ -53,6 +55,7 @@ class ArithBinOperator : public BinaryOperator {
 public:
 	ArithBinOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
 	: BinaryOperator(_op, _lval, _rval) {}
+	virtual ~ArithBinOperator() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
@@ -62,6 +65,7 @@ class CondBinOperator : public BinaryOperator {
 public:
 	CondBinOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
 	: BinaryOperator(_op, _lval, _rval) {}
+	virtual ~CondBinOperator() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
@@ -71,6 +75,7 @@ class RelBinOperator : public BinaryOperator {
 public:
 	RelBinOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
 	: BinaryOperator(_op, _lval, _rval) {}
+	virtual ~RelBinOperator() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
@@ -80,6 +85,7 @@ class EqBinOperator : public BinaryOperator {
 public:
 	EqBinOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
 	: BinaryOperator(_op, _lval, _rval) {}
+	virtual ~EqBinOperator() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
@@ -89,6 +95,7 @@ class UnaryMinus : public UnaryOperator {
 public:
 	UnaryMinus(ASTnode *val)
 	: UnaryOperator(OperatorType::UMINUS, val) {}
+	virtual ~UnaryMinus() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
@@ -98,19 +105,7 @@ class UnaryNot : public UnaryOperator {
 public:
 	UnaryNot(ASTnode *val)
 	: UnaryOperator(OperatorType::NOT, val) {}
+	virtual ~UnaryNot() = default;
 
 	virtual void accept(ASTvisitor& V);
-};
-
-// Assignment 
-class AssignOperator : public ASTnode {
-	public:
-	AssignOperator(OperatorType _op, Location *_lloc, ASTnode *_rval)
-	: op(_op), lloc(_lloc), rval(_rval) {}
-
-	virtual void accept(ASTvisitor& V);
-
-	OperatorType op;
-	Location *lloc;
-	ASTnode *rval;
 };

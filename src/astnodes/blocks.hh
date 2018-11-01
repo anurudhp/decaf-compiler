@@ -11,6 +11,7 @@ public:
 				   const std::vector<ASTnode *>& _stmts)
 	: variable_declarations(_var_decl),
 	  statements(_stmts) {}
+	virtual ~StatementBlock();
 
 	virtual void accept(ASTvisitor& V);
 

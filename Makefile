@@ -4,7 +4,7 @@ FLEX_OPTS=
 BISON_OPTS=
 
 HEADERS=ast visitor
-SRCS=literals operators variables statements blocks methods program lex parser
+SRCS=ast literals operators variables statements blocks methods program lex parser
 
 OBJS=$(patsubst %,build/%.o,$(SRCS))
 
@@ -15,6 +15,9 @@ src/lex.yy.cc: src/scanner.ll
 
 src/parser.tab.cc: src/parser.yy src/lex.yy.cc
 	bison -o $@ -d $< $(BISON_OPTS)
+
+build/ast.o: src/astnodes/ast.cc src/astnodes/ast.hh src/parser.tab.cc
+	$(CC) -c -o $@ $< $(CC_OPTS)
 
 build/%.o: src/astnodes/%.cc src/astnodes/%.hh
 	$(CC) -c -o $@ $< $(CC_OPTS)

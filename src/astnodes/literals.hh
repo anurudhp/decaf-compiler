@@ -9,6 +9,7 @@ class Literal : public ASTnode {
 public:
 	Literal(ValueType _type)
 	: type(_type) {}
+	virtual ~Literal() = default;
 
 	virtual void accept(ASTvisitor& V);
 	
@@ -19,6 +20,7 @@ class IntegerLiteral: public Literal {
 public:
 	IntegerLiteral(int _value)
 	: Literal(ValueType::INT), value(_value) {}
+	virtual ~IntegerLiteral() = default;
 	
 	virtual void accept(ASTvisitor& V);
 
@@ -30,6 +32,7 @@ class BooleanLiteral: public Literal {
 public:
 	BooleanLiteral(bool _value)
 	: Literal(ValueType::BOOL), value(_value) {}
+	virtual ~BooleanLiteral() = default;
 
 	virtual void accept(ASTvisitor& V);
 
@@ -41,6 +44,7 @@ class StringLiteral: public Literal {
 public:
 	StringLiteral(std::string _value)
 	: Literal(ValueType::STRING), value(_value) {}
+	virtual ~StringLiteral() = default;
 
 	virtual void accept(ASTvisitor& V);
 
