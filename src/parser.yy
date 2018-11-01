@@ -39,6 +39,7 @@
 #include "astnodes/statements.hh"
 #include "astnodes/blocks.hh"
 #include "astnodes/methods.hh"
+#include "astnodes/program.hh"
 
 #undef yylex
 #define yylex driver.scanner->yylex
@@ -103,6 +104,7 @@
 
 %type <var_decl> var_decl_list var_decl var_list 
 %type <var_decl> param_list param_list_non_empty
+%type <var_decl> glob_var_decl_list field_decl field_decl_list
 %type <nodes> statement_list
 %type <methods> method_decl_list
 
@@ -119,7 +121,17 @@
 %start program
 
 %%
-program : CLASS ID '{' field_decl_list method_decl_list '}' {}
+program : CLASS ID '{' field_decl_list method_decl_list '}' {
+																if (std::string($2) != "Program") {
+																	std::cerr << "! error: Class name has to be `Program`\n";
+																	driver.root = NULL;
+																	return 1;
+																}
+
+																driver.root = new Program(*$4, *$5);
+																delete $4;
+																delete $5;
+															}
         ;
 
 /* Field(data) declarations */
@@ -128,14 +140,33 @@ type : INT { $$ = ValueType::INT; }
 	 | BOOL { $$ = ValueType::BOOL; }
 	 ;
 
-field_decl_list : field_decl_list field_decl {}
-		  		| %empty {}
+field_decl_list : field_decl_list field_decl {
+												$$ = $1;
+												$$->insert($$->end(), $2->begin(), $2->end());
+												delete $2;
+											}
+		  		| %empty {
+		  					$$ = new std::vector<VariableDeclaration>();
+		  				}
 		  		;
-field_decl : type glob_var_decl_list ';' {}
+field_decl : type glob_var_decl_list ';' {
+											$$ = $2;
+											for (auto& elem: *$$) {
+												elem.type = $1;
+											}
+										}
 		   ;
 
-glob_var_decl_list : glob_var_decl {}
-				   | glob_var_decl ',' glob_var_decl_list {}
+glob_var_decl_list : glob_var_decl {
+										$$ = new std::vector<VariableDeclaration>();
+										$$->push_back(*$1); 
+										delete $1;
+								}
+				   | glob_var_decl ',' glob_var_decl_list {
+				   											  $$ = $3;
+				   											  $$->push_back(*$1);
+				   											  delete $1;
+														}
 				   ;
 glob_var_decl : ID { $$ = new VariableDeclaration(std::string($1)); }
 			  | ID '[' INT_LIT ']' { $$ = new ArrayDeclaration(std::string(std::string($1)), $3); }
@@ -317,7 +348,6 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-
 	Decaf::Driver driver;
 	
 	driver.scanner = new Decaf::Scanner(&fin);
@@ -327,6 +357,8 @@ int main(int argc, char **argv) {
 		std::cerr << "Parsing failed!\n";
 		return 1;
 	}
+
+	// program at driver.root
 
 	return 0;
 }
