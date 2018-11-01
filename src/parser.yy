@@ -97,7 +97,8 @@
 %type <vt> type
 %type <decl> param glob_var_decl
 
-%type <ast> literal expr statement
+%type <ast> literal expr statement method_call
+%type <ast> arg callout_arg
 %type <block> block else_block
 %type <loc> location
 %type <method> method_decl
@@ -105,7 +106,7 @@
 %type <var_decl> var_decl_list var_decl var_list 
 %type <var_decl> param_list param_list_non_empty
 %type <var_decl> glob_var_decl_list field_decl field_decl_list
-%type <nodes> statement_list
+%type <nodes> statement_list callout_arg_list arg_list args
 %type <methods> method_decl_list
 
  /* priorities and precedence */
@@ -211,22 +212,18 @@ param : type ID { $$ = new VariableDeclaration(std::string($2), $1); }
 
 // Statement block
 block : '{' var_decl_list statement_list '}' { 
-												std::cerr << ">> Block\n";
 												$$ = new StatementBlock(*$2, *$3); 
 												delete $2;
 												delete $3;
-												std::cerr << "<< Block\n";
 											 }
 	  ;
 
 var_decl_list : var_decl var_decl_list  { 
-											std::cerr << ">> Merging variable list\n";
 											$$ = $2;
 											$$->insert($$->end(), $1->begin(), $1->end());
 											delete $1;
-											std::cerr << "<< Merging variable list\n";
 										}
-			  | %empty { $$ = new std::vector<VariableDeclaration>(); std::cerr << ">> Init. var list\n"; }
+			  | %empty { $$ = new std::vector<VariableDeclaration>(); }
 			  ;
 var_decl : type var_list ';' {
 								$$ = $2;
@@ -274,7 +271,7 @@ assign_op : ASSIGN     { $$ = OperatorType::ASSIGN; }
 
 /* Expressions */
 expr : location { $$ = $1; }
-	 | method_call { $$ = NULL; }
+	 | method_call { $$ = $1; }
 	 | literal { $$ = $1; }
 
 	 | '(' expr ')' { $$ = $2; }
@@ -304,27 +301,33 @@ location : ID { std::string id($1); $$ = new VariableLocation(id); }
 		 ;
 		 
 /* method calls */
-method_call : method_name '(' args ')' {}
-			| CALLOUT '(' STRING_LIT callout_arg_list ')' {}
+method_call : ID '(' args ')' { 
+								$$ = new MethodCall(std::string($1), *$3);
+								delete $3; 
+							}
+			| CALLOUT '(' STRING_LIT callout_arg_list ')' { 
+															$$ = new CalloutCall(std::string($3), *$4); 
+															delete $4;
+														}
 			;
 
-callout_arg_list : ',' callout_arg callout_arg_list {}
-				 | %empty {}
+callout_arg_list : ',' callout_arg callout_arg_list { ($$ = $3)->push_back($2); }
+				 | %empty { $$ = new std::vector<ASTnode *>(); }
 				 ;
-callout_arg : arg {}
-			| STRING_LIT {} 
+callout_arg : arg { $$ = $1; }
+			| STRING_LIT { $$ = new StringLiteral($1); } 
 			; 
 
-method_name : ID {}
-			;
-
-args : arg_list {}
-	 | %empty {} 
+args : arg_list { $$ = $1; }
+	 | %empty { $$ = new std::vector<ASTnode *>(); } 
 	 ;
-arg_list : arg {}
-		 | arg ',' arg_list {}
+arg_list : arg 	{
+					$$ = new std::vector<ASTnode *>();
+					$$->push_back($1);
+				}
+		 | arg ',' arg_list { ($$ = $3)->push_back($1); }
 		 ;
-arg: expr {}
+arg: expr { $$ = $1; }
    ;
 
 /* literals */
