@@ -3,6 +3,9 @@
 
 MethodDeclaration::~MethodDeclaration() {
 	delete this->body;
+	for (auto param: parameters) {
+		delete param;
+	}
 }
 void MethodDeclaration::accept(ASTvisitor& V) {
 	V.visit(*this);

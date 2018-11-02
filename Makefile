@@ -4,7 +4,9 @@ FLEX_OPTS=
 BISON_OPTS=
 
 HEADERS=ast visitor
-SRCS=ast literals operators variables statements blocks methods program lex parser
+SRCS=ast literals operators variables statements blocks methods program \
+	treegen \
+	driver lex parser
 
 OBJS=$(patsubst %,build/%.o,$(SRCS))
 
@@ -16,13 +18,16 @@ src/lex.yy.cc: src/scanner.ll
 src/parser.tab.cc: src/parser.yy src/lex.yy.cc
 	bison -o $@ -d $< $(BISON_OPTS)
 
-build/ast.o: src/astnodes/ast.cc src/astnodes/ast.hh src/parser.tab.cc
+build/ast.o: src/ast/ast.cc src/ast/ast.hh src/parser.tab.cc
 	$(CC) -c -o $@ $< $(CC_OPTS)
 
-build/%.o: src/astnodes/%.cc src/astnodes/%.hh
+build/%.o: src/ast/%.cc src/ast/%.hh
 	$(CC) -c -o $@ $< $(CC_OPTS)
 
-build/%.o: src/visitors/%.cc scr/visitors/%.hh
+build/%.o: src/visitors/%.cc src/visitors/%.hh
+	$(CC) -c -o $@ $< $(CC_OPTS)
+
+build/driver.o: src/driver.cc src/driver.hh src/parser.tab.cc
 	$(CC) -c -o $@ $< $(CC_OPTS)
 
 build/lex.o: src/lex.yy.cc src/parser.tab.cc

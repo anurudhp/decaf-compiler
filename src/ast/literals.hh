@@ -24,7 +24,6 @@ public:
 	
 	virtual void accept(ASTvisitor& V);
 
-private:
 	int value;
 };
 
@@ -36,7 +35,6 @@ public:
 
 	virtual void accept(ASTvisitor& V);
 
-private:
 	bool value;
 };
 
@@ -48,6 +46,5 @@ public:
 
 	virtual void accept(ASTvisitor& V);
 
-private:
 	std::string value;
 };

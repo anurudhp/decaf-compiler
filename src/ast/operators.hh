@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "ast.hh"
 #include "variables.hh"
 
@@ -21,6 +22,8 @@ enum class OperatorType {
 	// binary (assignment)
 	ASSIGN, ASSIGN_ADD, ASSIGN_SUB
 };
+
+std::string operator_type_to_string(const OperatorType& op);
 
 /*** Parent Operator Classes ***/
 

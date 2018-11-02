@@ -37,7 +37,7 @@ using token_type = Decaf::Parser::token_type;
 	yylval->ival = *yytext;
 	return token::CHAR_LIT;
 }
-\".*\"	{
+\"(\\n|\\t|\\\'|\\\"|\\\\|[^\\\'\"])*\"	{
 	yylval->sval = strdup(yytext);
 	return token::STRING_LIT;
 }

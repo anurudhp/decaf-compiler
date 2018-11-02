@@ -10,6 +10,7 @@ enum class ValueType {
 	INT, BOOL, CHAR, STRING,
 	INT_ARRAY, BOOL_ARRAY
 };
+std::string value_type_to_string(const ValueType& vt);
 
 /*** Locations ***/
 
@@ -45,18 +46,26 @@ public:
 
 /*** Variable Declarations ***/
 
-struct VariableDeclaration {
+class VariableDeclaration {
+public:
 	std::string id;
 	ValueType type;
 
 	VariableDeclaration(std::string _id, ValueType _type = ValueType::NONE)
 	: id(_id), type(_type) {}
+	virtual ~VariableDeclaration() = default;
+
+	virtual std::string to_string();
 };
 
-struct ArrayDeclaration : public VariableDeclaration {
+class ArrayDeclaration : public VariableDeclaration {
+public:
 	int array_len;
 
 	ArrayDeclaration(std::string _id, int _len, ValueType _type = ValueType::NONE)
 	: VariableDeclaration(_id, _type), array_len(_len) {}
+	virtual ~ArrayDeclaration() = default;
+
+	virtual std::string to_string();
 };
 

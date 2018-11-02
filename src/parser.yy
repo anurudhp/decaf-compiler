@@ -33,18 +33,21 @@
 	#include "driver.hh"
 
 	// AST node classes
-	#include "astnodes/ast.hh"
-	#include "astnodes/literals.hh"
-	#include "astnodes/operators.hh"
-	#include "astnodes/variables.hh"
-	#include "astnodes/statements.hh"
-	#include "astnodes/blocks.hh"
-	#include "astnodes/methods.hh"
-	#include "astnodes/program.hh"
+	#include "ast/ast.hh"
+	#include "ast/literals.hh"
+	#include "ast/operators.hh"
+	#include "ast/variables.hh"
+	#include "ast/statements.hh"
+	#include "ast/blocks.hh"
+	#include "ast/methods.hh"
+	#include "ast/program.hh"
+
+	// Visitor classes
+	#include "visitors/visitor.hh"
+	#include "visitors/treegen.hh"
 
 	#undef yylex
 	#define yylex driver.scanner->yylex
-
 }
 
 %union {
@@ -65,7 +68,7 @@
 	MethodDeclaration *method;
 
 	// vectors
-	std::vector<VariableDeclaration> *var_decl;
+	std::vector<VariableDeclaration *> *var_decl;
 	std::vector<ASTnode *> *nodes;
 	std::vector<MethodDeclaration *> *methods;
 }
@@ -148,26 +151,24 @@ field_decl_list : field_decl_list field_decl {
 												delete $2;
 											}
 		  		| %empty {
-		  					$$ = new std::vector<VariableDeclaration>();
+		  					$$ = new std::vector<VariableDeclaration *>();
 		  				}
 		  		;
 field_decl : type glob_var_decl_list ';' {
 											$$ = $2;
 											for (auto& elem: *$$) {
-												elem.type = $1;
+												elem->type = $1;
 											}
 										}
 		   ;
 
 glob_var_decl_list : glob_var_decl {
-										$$ = new std::vector<VariableDeclaration>();
-										$$->push_back(*$1); 
-										delete $1;
+										$$ = new std::vector<VariableDeclaration *>();
+										$$->push_back($1); 
 								}
 				   | glob_var_decl ',' glob_var_decl_list {
 				   											  $$ = $3;
-				   											  $$->push_back(*$1);
-				   											  delete $1;
+				   											  $$->push_back($1);
 														}
 				   ;
 glob_var_decl : ID { $$ = new VariableDeclaration(std::string($1)); }
@@ -196,17 +197,15 @@ method_decl : type ID '(' param_list ')' block {
 			;
 
 param_list : param_list_non_empty { $$ = $1; }
-		   | %empty { $$ = new std::vector<VariableDeclaration>(); }
+		   | %empty { $$ = new std::vector<VariableDeclaration *>(); }
 		   ;
 param_list_non_empty : param {
-								$$ = new std::vector<VariableDeclaration>();
-								$$->push_back(*$1);
-								delete $1;
+								$$ = new std::vector<VariableDeclaration *>();
+								$$->push_back($1);
 							 }
 		   			 | param ',' param_list_non_empty { 
 		   			 									$$ = $3; 
-		   			 									$$->push_back(*$1);
-		   			 									delete $1;
+		   			 									$$->push_back($1);
 		   			 								}
 		   			 ;
 param : type ID { $$ = new VariableDeclaration(std::string($2), $1); }
@@ -225,22 +224,22 @@ var_decl_list : var_decl var_decl_list  {
 											$$->insert($$->end(), $1->begin(), $1->end());
 											delete $1;
 										}
-			  | %empty { $$ = new std::vector<VariableDeclaration>(); }
+			  | %empty { $$ = new std::vector<VariableDeclaration *>(); }
 			  ;
 var_decl : type var_list ';' {
 								$$ = $2;
 								for (auto& elem: *$$) {
-									elem.type = $1;
+									elem->type = $1;
 								}
 							 }
 		 ;
 var_list : ID { 
-				$$ = new std::vector<VariableDeclaration>(); 
-				$$->emplace_back($1, ValueType::NONE); 
+				$$ = new std::vector<VariableDeclaration *>(); 
+				$$->push_back(new VariableDeclaration($1, ValueType::NONE)); 
 			  }
 		 | ID ',' var_list  {
 								$$ = $3;
-								$$->emplace_back($1, ValueType::NONE);
+								$$->push_back(new VariableDeclaration($1, ValueType::NONE));
 							}
 		 ;
 
@@ -317,7 +316,11 @@ callout_arg_list : ',' callout_arg callout_arg_list { ($$ = $3)->push_back($2); 
 				 | %empty { $$ = new std::vector<ASTnode *>(); }
 				 ;
 callout_arg : arg { $$ = $1; }
-			| STRING_LIT { $$ = new StringLiteral($1); } 
+			| STRING_LIT { 
+							std::string lit($1);
+							lit = lit.substr(1, lit.size() - 2);
+							$$ = new StringLiteral(lit);
+						} 
 			; 
 
 args : arg_list { $$ = $1; }
@@ -340,32 +343,43 @@ literal : INT_LIT { $$ = new IntegerLiteral($1); }
 %%
 
 int main(int argc, char **argv) {
-	if (argc < 2) {
+	if (argc != 2) {
 		std::cerr << "Usage: decaf <file>.dcf\n";
 		return 1;
 	}
 
+	// open input file as stream
 	std::string filename(argv[1]);
-
 	std::ifstream fin(filename);
 	if (!fin.good()) {
 		std::cerr << "Error: unable to read file " << filename << "\n";
 		return 1;
 	}
 
+	// Make a driver
 	Decaf::Driver driver;
-	
 	driver.scanner = new Decaf::Scanner(&fin);
 	driver.parser = new Decaf::Parser(driver);
+	// driver.parser->set_debug_level(1);
 
+	// parse the code, stop on syntax error
 	if (driver.parser->parse() != 0) {
-		std::cerr << "Parsing failed!\n";
 		return 1;
 	}
 
-	// program at driver.root
+	// Graph Generation (debugging/mermaidjs)
+/*	TreeGenerator *tree = new TreeGenerator();
+	tree->generate(*(driver.root), std::cout);
+	delete tree;
+*/
 
+	// Semantic analysis
+	
+
+	// cleanup
 	delete driver.root;
+	delete driver.parser;
+	delete driver.scanner;
 
 	return 0;
 }

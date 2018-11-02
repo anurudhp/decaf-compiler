@@ -7,3 +7,8 @@ src/parser.output
 src/lex.yy.cc
 src/location.hh
 src/position.hh
+
+#npm
+node_modules
+package.json
+yarn.lock

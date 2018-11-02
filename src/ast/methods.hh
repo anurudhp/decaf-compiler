@@ -9,7 +9,7 @@ class MethodDeclaration : public ASTnode {
 public:
 	MethodDeclaration(ValueType _rtype,
 					  const std::string& _name,
-					  const std::vector<VariableDeclaration>& _params, 
+					  const std::vector<VariableDeclaration *>& _params, 
 					  StatementBlock *_body)
 	: name(_name), 
 	  return_type(_rtype), 
@@ -21,7 +21,7 @@ public:
 
 	std::string name;
 	ValueType return_type;
-	std::vector<VariableDeclaration> parameters;
+	std::vector<VariableDeclaration *> parameters;
 	StatementBlock *body;
 };
 

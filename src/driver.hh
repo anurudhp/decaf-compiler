@@ -7,9 +7,10 @@ namespace Decaf {
 		class Parser *parser;
 
 		class ASTnode *root;
-		void error(const std::string& loc, const std::string& err) {
-			std::cerr << "[" << loc << "] " 
-				  << "error: " << err << std::endl;
-		}
+
+		Driver() = default;
+		~Driver() = default;
+
+		void syntax_error(const std::string& loc, const std::string& err);
 	};
 }
