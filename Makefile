@@ -1,7 +1,7 @@
 CC_OPTS=-std=c++14 -Wall -ll -g -DDEBUG_ENABLED
 CC=g++
 FLEX_OPTS=
-BISON_OPTS=
+BISON_OPTS=-v
 
 HEADERS=ast visitor
 SRCS=ast literals operators variables statements blocks methods program \

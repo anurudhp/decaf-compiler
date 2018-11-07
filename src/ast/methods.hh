@@ -18,6 +18,7 @@ public:
 	virtual ~MethodDeclaration();
 
 	virtual void accept(ASTvisitor& V);
+	virtual std::string to_string();
 
 	std::string name;
 	ValueType return_type;

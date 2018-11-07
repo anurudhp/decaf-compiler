@@ -2,13 +2,25 @@
 #include "../visitors/visitor.hh"
 
 MethodDeclaration::~MethodDeclaration() {
-	delete this->body;
+	delete body;
 	for (auto param: parameters) {
 		delete param;
 	}
 }
 void MethodDeclaration::accept(ASTvisitor& V) {
 	V.visit(*this);
+}
+std::string MethodDeclaration::to_string() {
+	std::string res = value_type_to_string(return_type) + " " + name;
+	res += "(";
+	bool first = true;
+	for (auto param: parameters) {
+		if (!first) res += ", ";
+		res += value_type_to_string(param->type);
+		first = false;
+	}
+	res += ")";
+	return res;
 }
 
 MethodCall::~MethodCall() {

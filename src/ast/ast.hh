@@ -14,6 +14,7 @@ public:
 	void set_location(const Decaf::location& loc);
 
 	virtual void accept(ASTvisitor& V) = 0;
+	virtual std::string to_string();
 
 	std::string location;
 };

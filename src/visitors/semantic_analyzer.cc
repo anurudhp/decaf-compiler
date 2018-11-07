@@ -4,22 +4,16 @@
 
 #include "semantic_analyzer.hh"
 #include "../ast/ast.hh"
-// #include "../ast/literals.hh"
-// #include "../ast/operators.hh"
+#include "../ast/literals.hh"
+#include "../ast/operators.hh"
 #include "../ast/variables.hh"
-// #include "../ast/statements.hh"
-// #include "../ast/blocks.hh"
+#include "../ast/statements.hh"
+#include "../ast/blocks.hh"
 #include "../ast/methods.hh"
-// #include "../ast/program.hh"
+#include "../ast/program.hh"
 #include "../exceptions.hh"
 
 /*** SemanticAnalyzer::SymbolTable ***/
-SemanticAnalyzer::SymbolTable::SymbolTable() {
-	// global scope
-	scope_depth = 1;
-	variables.emplace_back();
-}
-
 void SemanticAnalyzer::SymbolTable::block_start() {
 	variables.emplace_back();
 	scope_depth++;
@@ -31,7 +25,7 @@ void SemanticAnalyzer::SymbolTable::block_end() {
 }
 
 // add
-void SemanticAnalyzer::SymbolTable::add_variable(VariableDeclaration *variable, SemanticAnalyzer& analyzer) {
+void SemanticAnalyzer::SymbolTable::add_variable(VariableDeclaration *variable) {
 	auto& current_scope = variables.back();
 	if (current_scope.count(variable->id)) {
 		auto previous_decl = current_scope[variable->id];
@@ -58,14 +52,14 @@ void SemanticAnalyzer::SymbolTable::add_variable(VariableDeclaration *variable, 
 	current_scope[variable->id] = variable;
 }
 
-void SemanticAnalyzer::SymbolTable::add_method(MethodDeclaration *method, SemanticAnalyzer& analyzer) {
+void SemanticAnalyzer::SymbolTable::add_method(MethodDeclaration *method) {
 	if (methods.count(method->name)) {
 		auto previous_decl = methods[method->name];
 		analyzer.log_error(1, method->location,
 						   "Reuse of method name `%s` (previously declared at [%s]: `%s`)",
 						   method->name.c_str(),
 						   previous_decl->location.c_str(),
-						   "");
+						   previous_decl->to_string().c_str());
 		return;
 	}
 
@@ -73,11 +67,10 @@ void SemanticAnalyzer::SymbolTable::add_method(MethodDeclaration *method, Semant
 	if (global_scope.count(method->name)) {
 		auto previous_decl = global_scope[method->name];
 		analyzer.log_error(1, method->location,
-						   "Invalid reuse of variable name `%s` for method (previously declared at [%s]: `%s %s`)",
+						   "Invalid reuse of variable name `%s` for method (previously declared at [%s]: `%s`)",
 						   method->name.c_str(),
 						   previous_decl->location.c_str(),
-						   value_type_to_string(previous_decl->type).c_str(),
-						   previous_decl->id.c_str());
+						   previous_decl->to_string().c_str());
 		return;
 	}
 	
@@ -85,7 +78,7 @@ void SemanticAnalyzer::SymbolTable::add_method(MethodDeclaration *method, Semant
 }
 
 // lookup
-VariableDeclaration* SemanticAnalyzer::SymbolTable::lookup_variable(Location *varloc, SemanticAnalyzer& analyzer) {
+VariableDeclaration* SemanticAnalyzer::SymbolTable::lookup_variable(Location *varloc) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(varloc->id)) {
 			auto decl = variables[i][varloc->id];
@@ -109,7 +102,7 @@ VariableDeclaration* SemanticAnalyzer::SymbolTable::lookup_variable(Location *va
 	}
 	return NULL;
 }
-MethodDeclaration* SemanticAnalyzer::SymbolTable::lookup_method(MethodCall *mcall, SemanticAnalyzer& analyzer) {
+MethodDeclaration* SemanticAnalyzer::SymbolTable::lookup_method(MethodCall *mcall) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(mcall->id)) {
 			auto decl = variables[i][mcall->id];
@@ -146,18 +139,22 @@ void SemanticAnalyzer::log_error(const int error_type,
 	va_end(args);
 
 	// errors
-	errors.emplace_back(error_type, location + " " + std::string(_buffer));
+	std::string msg(_buffer);
+	if (!location.empty()) msg = "[" + location + "] " + msg;
+	errors.emplace_back(error_type, msg);
 }
 
 bool SemanticAnalyzer::check(ASTnode& root) {
-	// root.visit(*this);
+	symbol_table = new SymbolTable(*this);
+	root.accept(*this);
+	delete symbol_table; symbol_table = NULL;
 
 	return errors.empty();
 }
 void SemanticAnalyzer::display(std::ostream& out, const bool show_rules) {
 	for (auto& err: errors) {
 		if (show_rules) {
-			out << "[Rule:" << err.first << "] ";
+			out << "{Rule:" << err.first << "} ";
 		}
 		out << err.second << "\n";
 	}
@@ -257,5 +254,32 @@ void SemanticAnalyzer::visit(CalloutCall& node) {
 
 // program.hh
 void SemanticAnalyzer::visit(Program& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	symbol_table->block_start(); // global scope
+
+	for (auto decl: node.global_variables) {
+		symbol_table->add_variable(decl);
+	}
+
+	for (auto method: node.methods) {
+		symbol_table->add_method(method);
+		// method->accept(*this);
+	}
+
+	// check for main:
+	if (!symbol_table->methods.count("main")) {
+		log_error(3, "",
+				  "Method `main` not declared!");
+	} else {
+		MethodDeclaration *main = symbol_table->methods["main"];
+		if (main->return_type != ValueType::VOID) {
+			log_error(3, main->location,
+					  "Method `main` must return void (instead returns `%s`)",
+					  value_type_to_string(main->return_type).c_str());
+		}
+		if (!main->parameters.empty()) {
+			log_error(3, main->location,
+					  "Method `main` cannot have any parameters (declared: `%s`)",
+					  main->to_string().c_str());
+		}
+	}
 }

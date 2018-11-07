@@ -11,3 +11,7 @@ void ASTnode::set_location(const Decaf::location& loc) {
 	ss << loc;
 	this->location = ss.str();
 }
+
+std::string ASTnode::to_string() {
+	return "";
+}

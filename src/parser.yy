@@ -148,7 +148,7 @@ type : INT { $$ = ValueType::INT; }
 
 field_decl_list : field_decl_list field_decl {
 												$$ = $1;
-												$$->insert($$->end(), $2->begin(), $2->end());
+												$$->insert($$->end(), $2->rbegin(), $2->rend());
 												delete $2;
 											}
 		  		| %empty {
@@ -172,8 +172,14 @@ glob_var_decl_list : glob_var_decl {
 				   											  $$->push_back($1);
 														}
 				   ;
-glob_var_decl : ID { $$ = new VariableDeclaration(std::string($1)); }
-			  | ID '[' INT_LIT ']' { $$ = new ArrayDeclaration(std::string(std::string($1)), $3); }
+glob_var_decl : ID { 
+						$$ = new VariableDeclaration(std::string($1)); 
+						$$->set_location(@$);
+				}
+			  | ID '[' INT_LIT ']' { 
+			  							$$ = new ArrayDeclaration(std::string(std::string($1)), $3); 
+			  							$$->set_location(@$);
+			  					}
 			  ;
 
 /* Function(method) declarations */
@@ -187,12 +193,15 @@ method_decl_list : method_decl_list method_decl {
 				 				}
 				 ;
 method_decl : type ID '(' param_list ')' block {
+													std::reverse($4->begin(), $4->end());
 													$$ = new MethodDeclaration($1, $2, *$4, $6);
-													$$->set_location(@$);
+													$$->set_location(@2);
 													delete $4;
 											}
 			| VOID ID '(' param_list ')' block {
+													std::reverse($4->begin(), $4->end());
 													$$ = new MethodDeclaration(ValueType::VOID, $2, *$4, $6);
+													$$->set_location(@2);
 													delete $4;
 											}
 			;
@@ -209,21 +218,22 @@ param_list_non_empty : param {
 		   			 									$$->push_back($1);
 		   			 								}
 		   			 ;
-param : type ID { $$ = new VariableDeclaration(std::string($2), $1); }
+param : type ID { $$ = new VariableDeclaration(std::string($2), $1); $$->set_location(@$); }
 	  ;
 
 // Statement block
 block : '{' var_decl_list statement_list '}' { 
 												$$ = new StatementBlock(*$2, *$3); 
+												$$->set_location(@$);
 												delete $2;
 												delete $3;
 											 }
 	  ;
 
-var_decl_list : var_decl var_decl_list  { 
-											$$ = $2;
-											$$->insert($$->end(), $1->begin(), $1->end());
-											delete $1;
+var_decl_list : var_decl_list var_decl { 
+											$$ = $1;
+											$$->insert($$->end(), $2->rbegin(), $2->rend());
+											delete $2;
 										}
 			  | %empty { $$ = new std::vector<VariableDeclaration *>(); }
 			  ;
@@ -237,28 +247,30 @@ var_decl : type var_list ';' {
 var_list : ID { 
 				$$ = new std::vector<VariableDeclaration *>(); 
 				$$->push_back(new VariableDeclaration($1, ValueType::NONE)); 
+				$$->back()->set_location(@$);
 			  }
 		 | ID ',' var_list  {
 								$$ = $3;
 								$$->push_back(new VariableDeclaration($1, ValueType::NONE));
+								$$->back()->set_location(@$);
 							}
 		 ;
 
 
-statement_list : statement statement_list   {
-												$$ = $2;
-												$$->push_back($1);
+statement_list : statement_list statement    {
+												$$ = $1;
+												$$->push_back($2);
 											}
 			   | %empty { $$ = new std::vector<ASTnode *>(); }
 			   ;
-statement : location assign_op expr ';' { $$ = new AssignStatement($2, $1, $3); }
+statement : location assign_op expr ';' { $$ = new AssignStatement($2, $1, $3); $$->set_location(@$); }
 		  | method_call ';' { $$ = $1; }
-		  | IF '(' expr ')' block else_block { $$ = new IfStatement($3, $5, $6); }
-		  | FOR ID ASSIGN expr ',' expr block { $$ = new ForStatement($2, $4, $6, $7); }
-		  | BREAK ';' { $$ = new BreakStatement(); }
-		  | CONTINUE ';' { $$ = new ContinueStatement(); }
-		  | RETURN expr ';' { $$ = new ReturnStatement($2); }
-		  | RETURN ';' { $$ = new ReturnStatement(); }
+		  | IF '(' expr ')' block else_block { $$ = new IfStatement($3, $5, $6); $$->set_location(@$); }
+		  | FOR ID ASSIGN expr ',' expr block { $$ = new ForStatement($2, $4, $6, $7); $$->set_location(@$); }
+		  | BREAK ';' { $$ = new BreakStatement(); $$->set_location(@$); }
+		  | CONTINUE ';' { $$ = new ContinueStatement(); $$->set_location(@$); }
+		  | RETURN expr ';' { $$ = new ReturnStatement($2); $$->set_location(@$); }
+		  | RETURN ';' { $$ = new ReturnStatement(); $$->set_location(@$); }
 		  | block { $$ = $1; }
 		  ;
 
@@ -278,37 +290,41 @@ expr : location { $$ = $1; }
 
 	 | '(' expr ')' { $$ = $2; }
 	 
-	 | SUB expr %prec UMINUS { $$ = new UnaryMinus($2); }
-	 | NOT expr { $$ = new UnaryNot($2); }
+	 | SUB expr %prec UMINUS { $$ = new UnaryMinus($2); $$->set_location(@$); }
+	 | NOT expr { $$ = new UnaryNot($2); $$->set_location(@$); }
 	 
-	 | expr ADD expr { $$ = new ArithBinOperator(OperatorType::ADD, $1, $3); } 
-	 | expr SUB expr { $$ = new ArithBinOperator(OperatorType::SUB, $1, $3); }
-	 | expr MUL expr { $$ = new ArithBinOperator(OperatorType::MUL, $1, $3); }
-	 | expr DIV expr { $$ = new ArithBinOperator(OperatorType::DIV, $1, $3); }
-	 | expr MOD expr { $$ = new ArithBinOperator(OperatorType::MOD, $1, $3); }
+	 | expr ADD expr { $$ = new ArithBinOperator(OperatorType::ADD, $1, $3); $$->set_location(@$); } 
+	 | expr SUB expr { $$ = new ArithBinOperator(OperatorType::SUB, $1, $3); $$->set_location(@$); }
+	 | expr MUL expr { $$ = new ArithBinOperator(OperatorType::MUL, $1, $3); $$->set_location(@$); }
+	 | expr DIV expr { $$ = new ArithBinOperator(OperatorType::DIV, $1, $3); $$->set_location(@$); }
+	 | expr MOD expr { $$ = new ArithBinOperator(OperatorType::MOD, $1, $3); $$->set_location(@$); }
 	 
-	 | expr AND expr { $$ = new CondBinOperator(OperatorType::AND, $1, $3); }
-	 | expr OR expr  { $$ = new CondBinOperator(OperatorType::OR, $1, $3); }
+	 | expr AND expr { $$ = new CondBinOperator(OperatorType::AND, $1, $3); $$->set_location(@$); }
+	 | expr OR expr  { $$ = new CondBinOperator(OperatorType::OR, $1, $3); $$->set_location(@$); }
 
-	 | expr LE expr  { $$ = new RelBinOperator(OperatorType::LE, $1, $3); } 
-	 | expr LT expr  { $$ = new RelBinOperator(OperatorType::LT, $1, $3); } 
-	 | expr GE expr  { $$ = new RelBinOperator(OperatorType::GE, $1, $3); }
-	 | expr GT expr  { $$ = new RelBinOperator(OperatorType::GT, $1, $3); }
-	 | expr EQ expr  { $$ = new EqBinOperator(OperatorType::EQ, $1, $3); }
-	 | expr NE expr  { $$ = new EqBinOperator(OperatorType::NE, $1, $3); }
+	 | expr LE expr  { $$ = new RelBinOperator(OperatorType::LE, $1, $3); $$->set_location(@$); } 
+	 | expr LT expr  { $$ = new RelBinOperator(OperatorType::LT, $1, $3); $$->set_location(@$); } 
+	 | expr GE expr  { $$ = new RelBinOperator(OperatorType::GE, $1, $3); $$->set_location(@$); }
+	 | expr GT expr  { $$ = new RelBinOperator(OperatorType::GT, $1, $3); $$->set_location(@$); }
+	 | expr EQ expr  { $$ = new EqBinOperator(OperatorType::EQ, $1, $3); $$->set_location(@$); }
+	 | expr NE expr  { $$ = new EqBinOperator(OperatorType::NE, $1, $3); $$->set_location(@$); }
 	 ;
 
-location : ID { std::string id($1); $$ = new VariableLocation(id); }
-		 | ID '[' expr ']' { std::string id($1); $$ = new ArrayLocation(id, $3); }
+location : ID { std::string id($1); $$ = new VariableLocation(id); $$->set_location(@$); }
+		 | ID '[' expr ']' { std::string id($1); $$ = new ArrayLocation(id, $3); $$->set_location(@$); }
 		 ;
 		 
 /* method calls */
 method_call : ID '(' args ')' { 
+								std::reverse($3->begin(), $3->end());
 								$$ = new MethodCall(std::string($1), *$3);
+								$$->set_location(@$); 
 								delete $3; 
 							}
 			| CALLOUT '(' STRING_LIT callout_arg_list ')' { 
+															std::reverse($4->begin(), $4->end());
 															$$ = new CalloutCall(std::string($3), *$4); 
+															$$->set_location(@$); 
 															delete $4;
 														}
 			;
@@ -321,6 +337,7 @@ callout_arg : arg { $$ = $1; }
 							std::string lit($1);
 							lit = lit.substr(1, lit.size() - 2);
 							$$ = new StringLiteral(lit);
+							$$->set_location(@$); 
 						} 
 			; 
 
@@ -337,9 +354,9 @@ arg: expr { $$ = $1; }
    ;
 
 /* literals */
-literal : INT_LIT { $$ = new IntegerLiteral($1); }
-		| BOOL_LIT { $$ = new BooleanLiteral($1); }
-		| CHAR_LIT { $$ = new IntegerLiteral($1); }
+literal : INT_LIT { $$ = new IntegerLiteral($1); $$->set_location(@$); }
+		| BOOL_LIT { $$ = new BooleanLiteral($1); $$->set_location(@$); }
+		| CHAR_LIT { $$ = new IntegerLiteral($1); $$->set_location(@$); }
 
 %%
 
@@ -380,7 +397,7 @@ int main(int argc, char **argv) {
 	SemanticAnalyzer *analyzer = new SemanticAnalyzer();
 	
 	if (!analyzer->check(*(driver.root))) {
-		analyzer->display(std::cerr);
+		analyzer->display(std::cerr, true);
 		return 1;
 	}
 
