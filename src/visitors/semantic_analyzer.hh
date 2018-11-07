@@ -1,31 +1,58 @@
 #pragma once
 
-#include <string>
 #include <vector>
-#include <map>
+#include <string>
 #include <stack>
+#include <map>
 #include <ostream>
 
 #include "visitor.hh"
 
-class TreeGenerator: public ASTvisitor {
+class SemanticAnalyzer : public ASTvisitor {
 public:
-	TreeGenerator() = default;
-	virtual ~TreeGenerator() = default;
+	SemanticAnalyzer() = default;
+	virtual ~SemanticAnalyzer() = default;
 
-	void generate(ASTnode& root, std::ostream& out);
+	bool check(ASTnode& root);
+	void display(std::ostream& out, const bool show_rules = false);
 
 protected:
-	int add_node(std::string name);
-	void add_edge(int u, int v);
-	void add_edge_top(int u);
-	void add_edge_implicit(int u, const std::string& v);
+
+	class SymbolTable {
+	public:
+		SymbolTable();
+		~SymbolTable() = default;
+
+		// enter a new block, add an inner-most scope layer
+		void block_start(); 
+		// remove the inner-most scope layer
+		void block_end();
+
+		// add a variable to the table
+		void add_variable(VariableDeclaration *variable, SemanticAnalyzer& analyzer);
+		// add a function to the table
+		void add_method(MethodDeclaration *method, SemanticAnalyzer& analyzer);
+
+		// lookup:
+		VariableDeclaration* lookup_variable(Location *varloc, SemanticAnalyzer& analyzer);
+		MethodDeclaration* lookup_method(MethodCall *mcall, SemanticAnalyzer& analyzer);
+
+	private:
+		std::vector<
+			std::map<std::string, VariableDeclaration *>
+		> variables;
+		std::map<std::string, MethodDeclaration *> methods;
+		int scope_depth;
+	};
+
+	void log_error(const int error_type, const std::string& location, const std::string& fmt, ...);
 
 private:
-	std::vector<std::vector<int>> out_edges;
-	std::vector<std::string> node_names;
+	std::stack<ValueType> type_stack;
 
-	std::stack<int> stack;
+	std::vector<std::pair<int, std::string>> errors;
+	const static int BUFFER_LENGTH = 100;
+	char _buffer[BUFFER_LENGTH];
 
 public:
 	// visits:

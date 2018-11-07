@@ -45,6 +45,7 @@
 	// Visitor classes
 	#include "visitors/visitor.hh"
 	#include "visitors/treegen.hh"
+	#include "visitors/semantic_analyzer.hh"
 
 	#undef yylex
 	#define yylex driver.scanner->yylex
@@ -367,14 +368,23 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+#ifdef DEBUG_ENABLED
 	// Graph Generation (debugging/mermaidjs)
-/*	TreeGenerator *tree = new TreeGenerator();
-	tree->generate(*(driver.root), std::cout);
+	TreeGenerator *tree = new TreeGenerator();
+	std::ofstream tree_out("var/graph.mer");
+	tree->generate(*(driver.root), tree_out);
 	delete tree;
-*/
+#endif
 
 	// Semantic analysis
+	SemanticAnalyzer *analyzer = new SemanticAnalyzer();
 	
+	if (!analyzer->check(*(driver.root))) {
+		analyzer->display(std::cerr);
+		return 1;
+	}
+
+	delete analyzer;
 
 	// cleanup
 	delete driver.root;

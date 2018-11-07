@@ -46,7 +46,7 @@ public:
 
 /*** Variable Declarations ***/
 
-class VariableDeclaration {
+class VariableDeclaration : public ASTnode {
 public:
 	std::string id;
 	ValueType type;
@@ -54,6 +54,8 @@ public:
 	VariableDeclaration(std::string _id, ValueType _type = ValueType::NONE)
 	: id(_id), type(_type) {}
 	virtual ~VariableDeclaration() = default;
+
+	virtual void accept(ASTvisitor& V) {}
 
 	virtual std::string to_string();
 };
@@ -65,6 +67,8 @@ public:
 	ArrayDeclaration(std::string _id, int _len, ValueType _type = ValueType::NONE)
 	: VariableDeclaration(_id, _type), array_len(_len) {}
 	virtual ~ArrayDeclaration() = default;
+
+	virtual void accept(ASTvisitor& V) {}
 
 	virtual std::string to_string();
 };

@@ -28,6 +28,10 @@ class StringLiteral;
 class Location;
 class VariableLocation;
 class ArrayLocation;
+class VariableDeclaration; 
+class ArrayDeclaration; 
+
+enum class ValueType;
 
 // operators.hh
 class UnaryOperator;
@@ -38,6 +42,8 @@ class RelBinOperator;
 class EqBinOperator;
 class UnaryMinus;
 class UnaryNot;
+
+enum class OperatorType;
 
 // statements.hh
 class ReturnStatement;
