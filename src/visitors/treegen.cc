@@ -12,11 +12,8 @@
 #include "../exceptions.hh"
 
 void TreeGenerator::generate(BaseAST& root, std::ostream& out) {
-	try {
-		root.accept(*this);
-	} catch(...) {
-		throw;
-	}
+	root.accept(*this);
+
 	out << "graph TD\n";
 	for (int i = 0; i < (int) node_names.size(); i++) {
 		out << i 

@@ -1,11 +1,13 @@
-CC_OPTS=-std=c++14 -Wall -ll -g -DDEBUG_ENABLED
-CC=g++
+CXX=g++
+CXX_OPTS=-std=c++14 -Wall -g -DDEBUG_ENABLED
+LLVM_OPTS=`llvm-config --cxxflags --ldflags` -fexceptions
+LLVM_LINK_OPTS=`llvm-config --libs --libfiles --system-libs`
 FLEX_OPTS=
 BISON_OPTS=-v
 
 HEADERS=ast visitor
 SRCS=ast literals operators variables statements blocks methods program \
-	treegen semantic_analyzer \
+	treegen semantic_analyzer codegen \
 	driver lex parser
 
 OBJS=$(patsubst %,build/%.o,$(SRCS))
@@ -19,25 +21,25 @@ src/parser.tab.cc: src/parser.yy src/lex.yy.cc
 	bison -o $@ -d $< $(BISON_OPTS)
 
 build/ast.o: src/ast/ast.cc src/ast/ast.hh src/parser.tab.cc
-	$(CC) -c -o $@ $< $(CC_OPTS)
+	$(CXX) -c -o $@ $< $(CXX_OPTS) $(LLVM_OPTS)
 
 build/%.o: src/ast/%.cc src/ast/%.hh
-	$(CC) -c -o $@ $< $(CC_OPTS)
+	$(CXX) -c -o $@ $< $(CXX_OPTS) $(LLVM_OPTS)
 
 build/%.o: src/visitors/%.cc src/visitors/%.hh
-	$(CC) -c -o $@ $< $(CC_OPTS)
+	$(CXX) -c -o $@ $< $(CXX_OPTS) $(LLVM_OPTS)
 
 build/driver.o: src/driver.cc src/driver.hh src/parser.tab.cc
-	$(CC) -c -o $@ $< $(CC_OPTS)
+	$(CXX) -c -o $@ $< $(CXX_OPTS) $(LLVM_OPTS)
 
 build/lex.o: src/lex.yy.cc src/parser.tab.cc
-	$(CC) -c -o $@ $< $(CC_OPTS)
+	$(CXX) -c -o $@ $< $(CXX_OPTS) $(LLVM_OPTS)
 
 build/parser.o: src/parser.tab.cc
-	$(CC) -c -o $@ $< $(CC_OPTS)
+	$(CXX) -c -o $@ $< $(CXX_OPTS) $(LLVM_OPTS)
 
 bin/decaf: $(OBJS)
-	$(CC) -o $@ $^ $(CC_OPTS)
+	$(CXX) -o $@ $^ $(CXX_OPTS) $(LLVM_OPTS) $(LLVM_LINK_OPTS)
 
 parser: bin/decaf
 
