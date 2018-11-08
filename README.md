@@ -6,4 +6,4 @@ CSE419 Compilers (Monsoon 2018)
 - [x] Phase 1: Grammar
 - [x] Phase 2: AST construction, basic semantic rules
 - [ ] Phase 3: LLVM IR generation
-- [ ] optional: Semantic Analysis (full)
+- [x] optional: Semantic Analysis (full)
