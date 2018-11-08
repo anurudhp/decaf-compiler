@@ -5,45 +5,45 @@
 #include "blocks.hh"
 
 // Method declarations
-class MethodDeclaration : public ASTnode {
+class MethodDeclarationAST : public BaseAST {
 public:
-	MethodDeclaration(ValueType _rtype,
+	MethodDeclarationAST(ValueType _rtype,
 					  const std::string& _name,
-					  const std::vector<VariableDeclaration *>& _params, 
-					  StatementBlock *_body)
+					  const std::vector<VariableDeclarationAST *>& _params, 
+					  StatementBlockAST *_body)
 	: name(_name), 
 	  return_type(_rtype), 
 	  parameters(_params),
 	  body(_body) {}
-	virtual ~MethodDeclaration();
+	virtual ~MethodDeclarationAST();
 
 	virtual void accept(ASTvisitor& V);
 	virtual std::string to_string();
 
 	std::string name;
 	ValueType return_type;
-	std::vector<VariableDeclaration *> parameters;
-	StatementBlock *body;
+	std::vector<VariableDeclarationAST *> parameters;
+	StatementBlockAST *body;
 };
 
 // Method calls
-class MethodCall : public ASTnode {
+class MethodCallAST : public BaseAST {
 public:
-	MethodCall(std::string _id, std::vector<ASTnode *> args)
+	MethodCallAST(std::string _id, std::vector<BaseAST *> args)
 	: id(_id), arguments(args) {}
-	virtual ~MethodCall();
+	virtual ~MethodCallAST();
 
 	virtual void accept(ASTvisitor& V);
 	
 	std::string id;
-	std::vector<ASTnode *> arguments;
+	std::vector<BaseAST *> arguments;
 };
 
-class CalloutCall : public MethodCall {
+class CalloutCallAST : public MethodCallAST {
 public:
-	CalloutCall(std::string _id, std::vector<ASTnode *> args)
-	: MethodCall(_id, args) {}
-	virtual ~CalloutCall() = default;
+	CalloutCallAST(std::string _id, std::vector<BaseAST *> args)
+	: MethodCallAST(_id, args) {}
+	virtual ~CalloutCallAST() = default;
 	
 	virtual void accept(ASTvisitor& V);
 };

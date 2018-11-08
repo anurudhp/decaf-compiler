@@ -1,41 +1,41 @@
 #include "statements.hh"
 #include "../visitors/visitor.hh"
 
-ReturnStatement::~ReturnStatement() {
+ReturnStatementAST::~ReturnStatementAST() {
 	delete ret_expr;
 }
-void ReturnStatement::accept(ASTvisitor& V) {
+void ReturnStatementAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
-void BreakStatement::accept(ASTvisitor& V) {
+void BreakStatementAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
-void ContinueStatement::accept(ASTvisitor& V) {
+void ContinueStatementAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-IfStatement::~IfStatement() {
+IfStatementAST::~IfStatementAST() {
 	delete cond_expr;
 	delete then_block;
 	delete else_block;
 }
-void IfStatement::accept(ASTvisitor& V) {
+void IfStatementAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-ForStatement::~ForStatement() {
+ForStatementAST::~ForStatementAST() {
 	delete start_expr;
 	delete end_expr;
 	delete block;
 }
-void ForStatement::accept(ASTvisitor& V) {
+void ForStatementAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-AssignStatement::~AssignStatement() {
+AssignStatementAST::~AssignStatementAST() {
 	delete lloc;
 	delete rval;
 }
-void AssignStatement::accept(ASTvisitor& V) {
+void AssignStatementAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }

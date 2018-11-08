@@ -3,18 +3,18 @@
 
 #include "variables.hh"
 
-void Literal::accept(ASTvisitor& V) {
+void LiteralAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-void IntegerLiteral::accept(ASTvisitor& V) {
+void IntegerLiteralAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-void BooleanLiteral::accept(ASTvisitor& V) {
+void BooleanLiteralAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-void StringLiteral::accept(ASTvisitor& V) {
+void StringLiteralAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }

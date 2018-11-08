@@ -14,61 +14,61 @@ std::string value_type_to_string(const ValueType& vt);
 
 /*** Locations ***/
 
-class Location : public ASTnode {
+class LocationAST : public BaseAST {
 public:
-	Location(std::string _id, ASTnode *_index)
+	LocationAST(std::string _id, BaseAST *_index)
 	: id(_id), index_expr(_index) {}
-	virtual ~Location();
+	virtual ~LocationAST();
 
 	virtual void accept(ASTvisitor& V);
 
 	std::string id;
-	ASTnode *index_expr;
+	BaseAST *index_expr;
 };
 
-class VariableLocation : public Location {
+class VariableLocationAST : public LocationAST {
 public:
-	VariableLocation(std::string id)
-	: Location(id, NULL) {}
-	virtual ~VariableLocation() = default;
+	VariableLocationAST(std::string id)
+	: LocationAST(id, NULL) {}
+	virtual ~VariableLocationAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
 
-class ArrayLocation : public Location {
+class ArrayLocationAST : public LocationAST {
 public:
-	ArrayLocation(std::string id, ASTnode *index)
-	: Location(id, index) {}
-	virtual ~ArrayLocation() = default;
+	ArrayLocationAST(std::string id, BaseAST *index)
+	: LocationAST(id, index) {}
+	virtual ~ArrayLocationAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
 
 /*** Variable Declarations ***/
 
-class VariableDeclaration : public ASTnode {
+class VariableDeclarationAST : public BaseAST {
 public:
 	std::string id;
 	ValueType type;
 
-	VariableDeclaration(std::string _id, ValueType _type = ValueType::NONE)
+	VariableDeclarationAST(std::string _id, ValueType _type = ValueType::NONE)
 	: id(_id), type(_type) {}
-	virtual ~VariableDeclaration() = default;
+	virtual ~VariableDeclarationAST() = default;
 
-	virtual void accept(ASTvisitor& V) {}
+	virtual void accept(ASTvisitor& V);
 
 	virtual std::string to_string();
 };
 
-class ArrayDeclaration : public VariableDeclaration {
+class ArrayDeclarationAST : public VariableDeclarationAST {
 public:
 	int array_len;
 
-	ArrayDeclaration(std::string _id, int _len, ValueType _type = ValueType::NONE)
-	: VariableDeclaration(_id, _type), array_len(_len) {}
-	virtual ~ArrayDeclaration() = default;
+	ArrayDeclarationAST(std::string _id, int _len, ValueType _type = ValueType::NONE)
+	: VariableDeclarationAST(_id, _type), array_len(_len) {}
+	virtual ~ArrayDeclarationAST() = default;
 
-	virtual void accept(ASTvisitor& V) {}
+	virtual void accept(ASTvisitor& V);
 
 	virtual std::string to_string();
 };

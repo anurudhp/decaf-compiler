@@ -29,7 +29,7 @@ void SemanticAnalyzer::SymbolTable::block_end() {
 }
 
 // add
-void SemanticAnalyzer::SymbolTable::add_variable(VariableDeclaration *variable) {
+void SemanticAnalyzer::SymbolTable::add_variable(VariableDeclarationAST *variable) {
 	auto& current_scope = variables.back();
 	if (current_scope.count(variable->id)) {
 		auto previous_decl = current_scope[variable->id];
@@ -55,7 +55,7 @@ void SemanticAnalyzer::SymbolTable::add_variable(VariableDeclaration *variable) 
 
 	current_scope[variable->id] = variable;
 }
-void SemanticAnalyzer::SymbolTable::add_array(ArrayDeclaration *array) {
+void SemanticAnalyzer::SymbolTable::add_array(ArrayDeclarationAST *array) {
 	if (arrays.count(array->id)) {
 		auto previous_decl = arrays[array->id];
 		analyzer.log_error(1, array->location,
@@ -86,7 +86,7 @@ void SemanticAnalyzer::SymbolTable::add_array(ArrayDeclaration *array) {
 	arrays[array->id] = array;
 }
 
-void SemanticAnalyzer::SymbolTable::add_method(MethodDeclaration *method) {
+void SemanticAnalyzer::SymbolTable::add_method(MethodDeclarationAST *method) {
 	if (methods.count(method->name)) {
 		auto previous_decl = methods[method->name];
 		analyzer.log_error(1, method->location,
@@ -122,7 +122,7 @@ void SemanticAnalyzer::SymbolTable::add_method(MethodDeclaration *method) {
 }
 
 // lookup
-VariableDeclaration* SemanticAnalyzer::SymbolTable::lookup_variable(VariableLocation *varloc) {
+VariableDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_variable(VariableLocationAST *varloc) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(varloc->id)) {
 			return variables[i][varloc->id];
@@ -150,7 +150,7 @@ VariableDeclaration* SemanticAnalyzer::SymbolTable::lookup_variable(VariableLoca
 	}
 	return NULL;
 }
-ArrayDeclaration* SemanticAnalyzer::SymbolTable::lookup_array_element(ArrayLocation *arrloc) {
+ArrayDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_array_element(ArrayLocationAST *arrloc) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(arrloc->id)) {
 			auto decl = variables[i][arrloc->id];
@@ -180,7 +180,7 @@ ArrayDeclaration* SemanticAnalyzer::SymbolTable::lookup_array_element(ArrayLocat
 	return NULL;
 }
 
-MethodDeclaration* SemanticAnalyzer::SymbolTable::lookup_method(MethodCall *mcall) {
+MethodDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_method(MethodCallAST *mcall) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(mcall->id)) {
 			auto decl = variables[i][mcall->id];
@@ -234,7 +234,7 @@ void SemanticAnalyzer::log_error(const int error_type,
 	errors.emplace_back(error_type, msg);
 }
 
-bool SemanticAnalyzer::check(ASTnode& root) {
+bool SemanticAnalyzer::check(BaseAST& root) {
 	symbol_table = new SymbolTable(*this);
 	root.accept(*this);
 	delete symbol_table; symbol_table = NULL;
@@ -258,33 +258,33 @@ ValueType SemanticAnalyzer::get_top_type(bool pop) {
 }
 
 // Visit functions
-void SemanticAnalyzer::visit(ASTnode& node) {
+void SemanticAnalyzer::visit(BaseAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 
 // literals.hh
-void SemanticAnalyzer::visit(Literal& node) {
+void SemanticAnalyzer::visit(LiteralAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
-void SemanticAnalyzer::visit(IntegerLiteral& node) {
+void SemanticAnalyzer::visit(IntegerLiteralAST& node) {
 	type_stack.push(ValueType::INT);
 }
-void SemanticAnalyzer::visit(BooleanLiteral& node) {
+void SemanticAnalyzer::visit(BooleanLiteralAST& node) {
 	type_stack.push(ValueType::BOOL);
 }
-void SemanticAnalyzer::visit(StringLiteral& node) {
+void SemanticAnalyzer::visit(StringLiteralAST& node) {
 	type_stack.push(ValueType::STRING);
 }
 
 // variables.hh
-void SemanticAnalyzer::visit(Location& node) {
+void SemanticAnalyzer::visit(LocationAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
-void SemanticAnalyzer::visit(VariableLocation& node) {
+void SemanticAnalyzer::visit(VariableLocationAST& node) {
 	auto decl = symbol_table->lookup_variable(&node);
 	type_stack.push(decl ? decl->type : ValueType::NONE);
 }
-void SemanticAnalyzer::visit(ArrayLocation& node) {
+void SemanticAnalyzer::visit(ArrayLocationAST& node) {
 	auto decl = symbol_table->lookup_array_element(&node);
 	type_stack.push(decl ? decl->type : ValueType::NONE);
 
@@ -298,13 +298,13 @@ void SemanticAnalyzer::visit(ArrayLocation& node) {
 }
 
 // operators.hh
-void SemanticAnalyzer::visit(UnaryOperator& node) {
+void SemanticAnalyzer::visit(UnaryOperatorAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
-void SemanticAnalyzer::visit(BinaryOperator& node) {
+void SemanticAnalyzer::visit(BinaryOperatorAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
-void SemanticAnalyzer::visit(ArithBinOperator& node) {
+void SemanticAnalyzer::visit(ArithBinOperatorAST& node) {
 	bool has_error = false;
 
 	for (auto val: {node.lval, node.rval}) {
@@ -322,7 +322,7 @@ void SemanticAnalyzer::visit(ArithBinOperator& node) {
 	
 	type_stack.push(has_error ? ValueType::NONE : ValueType::INT);
 }
-void SemanticAnalyzer::visit(CondBinOperator& node) {
+void SemanticAnalyzer::visit(CondBinOperatorAST& node) {
 	bool has_error = false;
 
 	for (auto val: {node.lval, node.rval}) {
@@ -340,7 +340,7 @@ void SemanticAnalyzer::visit(CondBinOperator& node) {
 	
 	type_stack.push(has_error ? ValueType::NONE : ValueType::BOOL);
 }
-void SemanticAnalyzer::visit(RelBinOperator& node) {
+void SemanticAnalyzer::visit(RelBinOperatorAST& node) {
 	bool has_error = false;
 
 	for (auto val: {node.lval, node.rval}) {
@@ -358,7 +358,7 @@ void SemanticAnalyzer::visit(RelBinOperator& node) {
 	
 	type_stack.push(has_error ? ValueType::NONE : ValueType::BOOL);
 }
-void SemanticAnalyzer::visit(EqBinOperator& node) {
+void SemanticAnalyzer::visit(EqBinOperatorAST& node) {
 	bool has_error = false;
 
 	node.lval->accept(*this);
@@ -380,7 +380,7 @@ void SemanticAnalyzer::visit(EqBinOperator& node) {
 	type_stack.push(has_error ? ValueType::NONE : ValueType::BOOL);
 }
 
-void SemanticAnalyzer::visit(UnaryMinus& node) {
+void SemanticAnalyzer::visit(UnaryMinusAST& node) {
 	node.val->accept(*this);
 	ValueType res = get_top_type();
 	if (res != ValueType::INT && res != ValueType::NONE) {
@@ -392,7 +392,7 @@ void SemanticAnalyzer::visit(UnaryMinus& node) {
 
 	type_stack.push(res);
 }
-void SemanticAnalyzer::visit(UnaryNot& node) {
+void SemanticAnalyzer::visit(UnaryNotAST& node) {
 	node.val->accept(*this);
 	ValueType res = get_top_type();
 	if (res != ValueType::BOOL && res != ValueType::NONE) {
@@ -406,7 +406,7 @@ void SemanticAnalyzer::visit(UnaryNot& node) {
 }
 
 // statements.hh
-void SemanticAnalyzer::visit(ReturnStatement& node) {
+void SemanticAnalyzer::visit(ReturnStatementAST& node) {
 	if (current_method->return_type == ValueType::VOID 
 		&& node.ret_expr != NULL) {
 		log_error(7, node.location,
@@ -432,19 +432,19 @@ void SemanticAnalyzer::visit(ReturnStatement& node) {
 		}
 	}
 }
-void SemanticAnalyzer::visit(BreakStatement& node) {
+void SemanticAnalyzer::visit(BreakStatementAST& node) {
 	if (for_loop_depth == 0) {
 		log_error(18, node.location,
 				  "Unexpected break");
 	}
 }
-void SemanticAnalyzer::visit(ContinueStatement& node) {
+void SemanticAnalyzer::visit(ContinueStatementAST& node) {
 	if (for_loop_depth == 0) {
 		log_error(18, node.location,
 				  "Unexpected continue");
 	}
 }
-void SemanticAnalyzer::visit(IfStatement& node) {
+void SemanticAnalyzer::visit(IfStatementAST& node) {
 	node.cond_expr->accept(*this);
 	ValueType cond_type = get_top_type();
 	if (cond_type != ValueType::BOOL && cond_type != ValueType::NONE) {
@@ -458,7 +458,7 @@ void SemanticAnalyzer::visit(IfStatement& node) {
 		node.else_block->accept(*this);
 	}
 }
-void SemanticAnalyzer::visit(ForStatement& node) {
+void SemanticAnalyzer::visit(ForStatementAST& node) {
 	for (auto expr: {node.start_expr, node.end_expr}) {
 		expr->accept(*this);
 		ValueType type = get_top_type();
@@ -471,7 +471,7 @@ void SemanticAnalyzer::visit(ForStatement& node) {
 
 	for_loop_depth++;
 	symbol_table->block_start();
-	VariableDeclaration *iter = new VariableDeclaration(node.iterator_id, ValueType::INT);
+	auto iter = new VariableDeclarationAST(node.iterator_id, ValueType::INT);
 	symbol_table->add_variable(iter);
 
 	node.block->accept(*this);
@@ -480,7 +480,7 @@ void SemanticAnalyzer::visit(ForStatement& node) {
 	delete iter;
 	for_loop_depth--;
 }
-void SemanticAnalyzer::visit(AssignStatement& node) {
+void SemanticAnalyzer::visit(AssignStatementAST& node) {
 	node.lloc->accept(*this);
 	ValueType ltype = get_top_type();
 	node.rval->accept(*this);
@@ -513,7 +513,7 @@ void SemanticAnalyzer::visit(AssignStatement& node) {
 }
 
 // blocks.hh
-void SemanticAnalyzer::visit(StatementBlock& node) {
+void SemanticAnalyzer::visit(StatementBlockAST& node) {
 	symbol_table->block_start();
 
 	for (auto decl: node.variable_declarations) {
@@ -527,7 +527,7 @@ void SemanticAnalyzer::visit(StatementBlock& node) {
 }
 
 // methods.hh
-void SemanticAnalyzer::visit(MethodDeclaration& node) {
+void SemanticAnalyzer::visit(MethodDeclarationAST& node) {
 	symbol_table->block_start(); // method scope
 	for (auto param: node.parameters) {
 		symbol_table->add_variable(param);
@@ -536,7 +536,7 @@ void SemanticAnalyzer::visit(MethodDeclaration& node) {
 	node.body->accept(*this);
 }
 
-void SemanticAnalyzer::visit(MethodCall& node) {
+void SemanticAnalyzer::visit(MethodCallAST& node) {
 	auto decl = symbol_table->lookup_method(&node);
 	type_stack.push(decl ? decl->return_type : ValueType::NONE);
 
@@ -568,7 +568,7 @@ void SemanticAnalyzer::visit(MethodCall& node) {
 	}
 }
 
-void SemanticAnalyzer::visit(CalloutCall& node) {
+void SemanticAnalyzer::visit(CalloutCallAST& node) {
 	for (auto arg: node.arguments) {
 		arg->accept(*this);
 		ValueType expr = get_top_type();
@@ -584,13 +584,13 @@ void SemanticAnalyzer::visit(CalloutCall& node) {
 }
 
 // program.hh
-void SemanticAnalyzer::visit(Program& node) {
+void SemanticAnalyzer::visit(ProgramAST& node) {
 	symbol_table->block_start(); // global scope
 
 	for_loop_depth = 0;
 
 	for (auto decl: node.global_variables) {
-		ArrayDeclaration *adecl = dynamic_cast<ArrayDeclaration *>(decl);
+		auto adecl = dynamic_cast<ArrayDeclarationAST *>(decl);
 		if (adecl == NULL) {
 			symbol_table->add_variable(decl);
 		} else {
@@ -609,7 +609,7 @@ void SemanticAnalyzer::visit(Program& node) {
 		log_error(3, "",
 				  "Method `main` not declared!");
 	} else {
-		MethodDeclaration *main = symbol_table->methods["main"];
+		auto main = symbol_table->methods["main"];
 		if (main->return_type != ValueType::VOID) {
 			log_error(3, main->location,
 					  "Method `main` must return void (instead returns `%s`)",

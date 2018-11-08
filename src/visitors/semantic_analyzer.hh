@@ -13,7 +13,7 @@ public:
 	SemanticAnalyzer() = default;
 	virtual ~SemanticAnalyzer() = default;
 
-	bool check(ASTnode& root);
+	bool check(BaseAST& root);
 	void display(std::ostream& out, const bool show_rules = false);
 
 protected:
@@ -33,21 +33,21 @@ protected:
 		void block_end();
 
 		// add a variable to the table
-		void add_variable(VariableDeclaration *variable);
-		void add_array(ArrayDeclaration *array);
+		void add_variable(VariableDeclarationAST *variable);
+		void add_array(ArrayDeclarationAST *array);
 		// add a function to the table
-		void add_method(MethodDeclaration *method);
+		void add_method(MethodDeclarationAST *method);
 
 		// lookup:
-		VariableDeclaration* lookup_variable(VariableLocation *varloc);
-		ArrayDeclaration* lookup_array_element(ArrayLocation *arrloc);
-		MethodDeclaration* lookup_method(MethodCall *mcall);
+		VariableDeclarationAST* lookup_variable(VariableLocationAST *varloc);
+		ArrayDeclarationAST* lookup_array_element(ArrayLocationAST *arrloc);
+		MethodDeclarationAST* lookup_method(MethodCallAST *mcall);
 
 		std::vector<
-			std::map<std::string, VariableDeclaration *>
+			std::map<std::string, VariableDeclarationAST *>
 		> variables;
-		std::map<std::string, ArrayDeclaration *> arrays;
-		std::map<std::string, MethodDeclaration *> methods;
+		std::map<std::string, ArrayDeclarationAST *> arrays;
+		std::map<std::string, MethodDeclarationAST *> methods;
 		int scope_depth, hold_depth;
 	};
 
@@ -56,7 +56,7 @@ protected:
 private:
 	SymbolTable *symbol_table;
 	int for_loop_depth;
-	MethodDeclaration *current_method;
+	MethodDeclarationAST *current_method;
 
 	std::stack<ValueType> type_stack;
 	ValueType get_top_type(bool pop = true);
@@ -67,45 +67,45 @@ private:
 
 public:
 	// visits:
-	virtual void visit(ASTnode& node);
+	virtual void visit(BaseAST& node);
 
 	// literals.hh
-	virtual void visit(Literal& node);
-	virtual void visit(IntegerLiteral& node);
-	virtual void visit(BooleanLiteral& node);
-	virtual void visit(StringLiteral& node);
+	virtual void visit(LiteralAST& node);
+	virtual void visit(IntegerLiteralAST& node);
+	virtual void visit(BooleanLiteralAST& node);
+	virtual void visit(StringLiteralAST& node);
 
 	// variables.hh
-	virtual void visit(Location& node);
-	virtual void visit(VariableLocation& node);
-	virtual void visit(ArrayLocation& node);
+	virtual void visit(LocationAST& node);
+	virtual void visit(VariableLocationAST& node);
+	virtual void visit(ArrayLocationAST& node);
 
 	// operators.hh
-	virtual void visit(UnaryOperator& node);
-	virtual void visit(BinaryOperator& node);
-	virtual void visit(ArithBinOperator& node);
-	virtual void visit(CondBinOperator& node);
-	virtual void visit(RelBinOperator& node);
-	virtual void visit(EqBinOperator& node);
-	virtual void visit(UnaryMinus& node);
-	virtual void visit(UnaryNot& node);
+	virtual void visit(UnaryOperatorAST& node);
+	virtual void visit(BinaryOperatorAST& node);
+	virtual void visit(ArithBinOperatorAST& node);
+	virtual void visit(CondBinOperatorAST& node);
+	virtual void visit(RelBinOperatorAST& node);
+	virtual void visit(EqBinOperatorAST& node);
+	virtual void visit(UnaryMinusAST& node);
+	virtual void visit(UnaryNotAST& node);
 
 	// statements.hh
-	virtual void visit(ReturnStatement& node);
-	virtual void visit(BreakStatement& node);
-	virtual void visit(ContinueStatement& node);
-	virtual void visit(IfStatement& node);
-	virtual void visit(ForStatement& node);
-	virtual void visit(AssignStatement& node);
+	virtual void visit(ReturnStatementAST& node);
+	virtual void visit(BreakStatementAST& node);
+	virtual void visit(ContinueStatementAST& node);
+	virtual void visit(IfStatementAST& node);
+	virtual void visit(ForStatementAST& node);
+	virtual void visit(AssignStatementAST& node);
 
 	// blocks.hh
-	virtual void visit(StatementBlock& node);
+	virtual void visit(StatementBlockAST& node);
 
 	// methods.hh
-	virtual void visit(MethodDeclaration& node);
-	virtual void visit(MethodCall& node);
-	virtual void visit(CalloutCall& node);
+	virtual void visit(MethodDeclarationAST& node);
+	virtual void visit(MethodCallAST& node);
+	virtual void visit(CalloutCallAST& node);
 
 	// program.hh
-	virtual void visit(Program& node);
+	virtual void visit(ProgramAST& node);
 };

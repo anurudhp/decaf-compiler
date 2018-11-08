@@ -9,45 +9,45 @@ public:
 	ASTvisitor() = default;
 	virtual ~ASTvisitor() = default;
 
-	virtual void visit(ASTnode& node) = 0;
+	virtual void visit(BaseAST& node) = 0;
 
 	// literals.hh
-	virtual void visit(Literal& node) = 0;
-	virtual void visit(IntegerLiteral& node) = 0;
-	virtual void visit(BooleanLiteral& node) = 0;
-	virtual void visit(StringLiteral& node) = 0;
+	virtual void visit(LiteralAST& node) = 0;
+	virtual void visit(IntegerLiteralAST& node) = 0;
+	virtual void visit(BooleanLiteralAST& node) = 0;
+	virtual void visit(StringLiteralAST& node) = 0;
 
 	// variables.hh
-	virtual void visit(Location& node) = 0;
-	virtual void visit(VariableLocation& node) = 0;
-	virtual void visit(ArrayLocation& node) = 0;
+	virtual void visit(LocationAST& node) = 0;
+	virtual void visit(VariableLocationAST& node) = 0;
+	virtual void visit(ArrayLocationAST& node) = 0;
 
 	// operators.hh
-	virtual void visit(UnaryOperator& node) = 0;
-	virtual void visit(BinaryOperator& node) = 0;
-	virtual void visit(ArithBinOperator& node) = 0;
-	virtual void visit(CondBinOperator& node) = 0;
-	virtual void visit(RelBinOperator& node) = 0;
-	virtual void visit(EqBinOperator& node) = 0;
-	virtual void visit(UnaryMinus& node) = 0;
-	virtual void visit(UnaryNot& node) = 0;
+	virtual void visit(UnaryOperatorAST& node) = 0;
+	virtual void visit(BinaryOperatorAST& node) = 0;
+	virtual void visit(ArithBinOperatorAST& node) = 0;
+	virtual void visit(CondBinOperatorAST& node) = 0;
+	virtual void visit(RelBinOperatorAST& node) = 0;
+	virtual void visit(EqBinOperatorAST& node) = 0;
+	virtual void visit(UnaryMinusAST& node) = 0;
+	virtual void visit(UnaryNotAST& node) = 0;
 
 	// statements.hh
-	virtual void visit(ReturnStatement& node) = 0;
-	virtual void visit(BreakStatement& node) = 0;
-	virtual void visit(ContinueStatement& node) = 0;
-	virtual void visit(IfStatement& node) = 0;
-	virtual void visit(ForStatement& node) = 0;
-	virtual void visit(AssignStatement& node) = 0;
+	virtual void visit(ReturnStatementAST& node) = 0;
+	virtual void visit(BreakStatementAST& node) = 0;
+	virtual void visit(ContinueStatementAST& node) = 0;
+	virtual void visit(IfStatementAST& node) = 0;
+	virtual void visit(ForStatementAST& node) = 0;
+	virtual void visit(AssignStatementAST& node) = 0;
 
 	// blocks.hh
-	virtual void visit(StatementBlock& node) = 0;
+	virtual void visit(StatementBlockAST& node) = 0;
 
 	// methods.hh
-	virtual void visit(MethodDeclaration& node) = 0;
-	virtual void visit(MethodCall& node) = 0;
-	virtual void visit(CalloutCall& node) = 0;
+	virtual void visit(MethodDeclarationAST& node) = 0;
+	virtual void visit(MethodCallAST& node) = 0;
+	virtual void visit(CalloutCallAST& node) = 0;
 
 	// program.hh
-	virtual void visit(Program& node) = 0;
+	virtual void visit(ProgramAST& node) = 0;
 };

@@ -23,39 +23,39 @@ std::string operator_type_to_string(const OperatorType& op) {
 	return "";
 }
 
-UnaryOperator::~UnaryOperator() {
+UnaryOperatorAST::~UnaryOperatorAST() {
 	delete val;
 }
-void UnaryOperator::accept(ASTvisitor& V) {
+void UnaryOperatorAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-BinaryOperator::~BinaryOperator() {
+BinaryOperatorAST::~BinaryOperatorAST() {
 	delete lval;
 	delete rval;
 }
-void BinaryOperator::accept(ASTvisitor& V) {
+void BinaryOperatorAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
 //  Derived classes
 
-void ArithBinOperator::accept(ASTvisitor& V) {
+void ArithBinOperatorAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
-void CondBinOperator::accept(ASTvisitor& V) {
+void CondBinOperatorAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
-void RelBinOperator::accept(ASTvisitor& V) {
+void RelBinOperatorAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
-void EqBinOperator::accept(ASTvisitor& V) {
+void EqBinOperatorAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-void UnaryMinus::accept(ASTvisitor& V) {
+void UnaryMinusAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
-void UnaryNot::accept(ASTvisitor& V) {
+void UnaryNotAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }

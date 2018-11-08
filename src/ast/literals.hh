@@ -5,44 +5,44 @@
 #include "ast.hh"
 #include "variables.hh"
 
-class Literal : public ASTnode {
+class LiteralAST : public BaseAST {
 public:
-	Literal(ValueType _type)
+	LiteralAST(ValueType _type)
 	: type(_type) {}
-	virtual ~Literal() = default;
+	virtual ~LiteralAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 	
 	ValueType type;
 };
 
-class IntegerLiteral: public Literal {
+class IntegerLiteralAST: public LiteralAST {
 public:
-	IntegerLiteral(int _value)
-	: Literal(ValueType::INT), value(_value) {}
-	virtual ~IntegerLiteral() = default;
+	IntegerLiteralAST(int _value)
+	: LiteralAST(ValueType::INT), value(_value) {}
+	virtual ~IntegerLiteralAST() = default;
 	
 	virtual void accept(ASTvisitor& V);
 
 	int value;
 };
 
-class BooleanLiteral: public Literal {
+class BooleanLiteralAST: public LiteralAST {
 public:
-	BooleanLiteral(bool _value)
-	: Literal(ValueType::BOOL), value(_value) {}
-	virtual ~BooleanLiteral() = default;
+	BooleanLiteralAST(bool _value)
+	: LiteralAST(ValueType::BOOL), value(_value) {}
+	virtual ~BooleanLiteralAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 
 	bool value;
 };
 
-class StringLiteral: public Literal {
+class StringLiteralAST: public LiteralAST {
 public:
-	StringLiteral(std::string _value)
-	: Literal(ValueType::STRING), value(_value) {}
-	virtual ~StringLiteral() = default;
+	StringLiteralAST(std::string _value)
+	: LiteralAST(ValueType::STRING), value(_value) {}
+	virtual ~StringLiteralAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 

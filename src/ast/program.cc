@@ -1,7 +1,7 @@
 #include "program.hh"
 #include "../visitors/visitor.hh"
 
-Program::~Program() {
+ProgramAST::~ProgramAST() {
 	for (auto method: methods) {
 		delete method;
 	}
@@ -9,6 +9,6 @@ Program::~Program() {
 		delete var;
 	}
 }
-void Program::accept(ASTvisitor& V) {
+void ProgramAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }

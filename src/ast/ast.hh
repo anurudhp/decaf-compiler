@@ -5,10 +5,10 @@
 
 class ASTvisitor;
 
-class ASTnode {
+class BaseAST {
 public:
-	ASTnode(): location("??") {}
-	virtual ~ASTnode() = default;
+	BaseAST(): location("??") {}
+	virtual ~BaseAST() = default;
 
 	void set_location(const std::string& loc);
 	void set_location(const Decaf::location& loc);
@@ -20,47 +20,47 @@ public:
 };
 
 // literals.hh
-class Literal;
-class IntegerLiteral;
-class BooleanLiteral;
-class StringLiteral;
+class LiteralAST;
+class IntegerLiteralAST;
+class BooleanLiteralAST;
+class StringLiteralAST;
 
 // variables.hh
-class Location;
-class VariableLocation;
-class ArrayLocation;
-class VariableDeclaration; 
-class ArrayDeclaration; 
+class LocationAST;
+class VariableLocationAST;
+class ArrayLocationAST;
+class VariableDeclarationAST; 
+class ArrayDeclarationAST; 
 
 enum class ValueType;
 
 // operators.hh
-class UnaryOperator;
-class BinaryOperator;
-class ArithBinOperator;
-class CondBinOperator;
-class RelBinOperator;
-class EqBinOperator;
-class UnaryMinus;
-class UnaryNot;
+class UnaryOperatorAST;
+class BinaryOperatorAST;
+class ArithBinOperatorAST;
+class CondBinOperatorAST;
+class RelBinOperatorAST;
+class EqBinOperatorAST;
+class UnaryMinusAST;
+class UnaryNotAST;
 
 enum class OperatorType;
 
 // statements.hh
-class ReturnStatement;
-class BreakStatement;
-class ContinueStatement;
-class IfStatement;
-class ForStatement;
-class AssignStatement;
+class ReturnStatementAST;
+class BreakStatementAST;
+class ContinueStatementAST;
+class IfStatementAST;
+class ForStatementAST;
+class AssignStatementAST;
 
 // blocks.hh
-class StatementBlock;
+class StatementBlockAST;
 
 // methods.hh
-class MethodDeclaration;
-class MethodCall;
-class CalloutCall;
+class MethodDeclarationAST;
+class MethodCallAST;
+class CalloutCallAST;
 
 // program.hh
-class Program;
+class ProgramAST;

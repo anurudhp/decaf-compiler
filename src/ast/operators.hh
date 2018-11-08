@@ -27,88 +27,88 @@ std::string operator_type_to_string(const OperatorType& op);
 
 /*** Parent Operator Classes ***/
 
-class UnaryOperator : public ASTnode {
+class UnaryOperatorAST : public BaseAST {
 public:
-	UnaryOperator(OperatorType _op, ASTnode *_val)
+	UnaryOperatorAST(OperatorType _op, BaseAST *_val)
 	: op(_op), val(_val) {}
-	virtual ~UnaryOperator();
+	virtual ~UnaryOperatorAST();
 
 	virtual void accept(ASTvisitor& V);
 	
 	OperatorType op;
-	ASTnode *val;
+	BaseAST *val;
 };
 
-class BinaryOperator : public ASTnode {
+class BinaryOperatorAST : public BaseAST {
 public:
-	BinaryOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
+	BinaryOperatorAST(OperatorType _op, BaseAST *_lval, BaseAST *_rval)
 	: op(_op), lval(_lval), rval(_rval) {}
-	virtual ~BinaryOperator();
+	virtual ~BinaryOperatorAST();
 
 	virtual void accept(ASTvisitor& V);
 	
 	OperatorType op;
-	ASTnode *lval, *rval;
+	BaseAST *lval, *rval;
 };
 
 /*** Derived Operator Classes ***/
 
 // ADD SUB MUL DIV MOD
-class ArithBinOperator : public BinaryOperator {
+class ArithBinOperatorAST : public BinaryOperatorAST {
 public:
-	ArithBinOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
-	: BinaryOperator(_op, _lval, _rval) {}
-	virtual ~ArithBinOperator() = default;
+	ArithBinOperatorAST(OperatorType _op, BaseAST *_lval, BaseAST *_rval)
+	: BinaryOperatorAST(_op, _lval, _rval) {}
+	virtual ~ArithBinOperatorAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
 
 // AND OR
-class CondBinOperator : public BinaryOperator {
+class CondBinOperatorAST : public BinaryOperatorAST {
 public:
-	CondBinOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
-	: BinaryOperator(_op, _lval, _rval) {}
-	virtual ~CondBinOperator() = default;
+	CondBinOperatorAST(OperatorType _op, BaseAST *_lval, BaseAST *_rval)
+	: BinaryOperatorAST(_op, _lval, _rval) {}
+	virtual ~CondBinOperatorAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
 
 // LE LT GE GT
-class RelBinOperator : public BinaryOperator {
+class RelBinOperatorAST : public BinaryOperatorAST {
 public:
-	RelBinOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
-	: BinaryOperator(_op, _lval, _rval) {}
-	virtual ~RelBinOperator() = default;
+	RelBinOperatorAST(OperatorType _op, BaseAST *_lval, BaseAST *_rval)
+	: BinaryOperatorAST(_op, _lval, _rval) {}
+	virtual ~RelBinOperatorAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
 
 // EQ NE
-class EqBinOperator : public BinaryOperator {
+class EqBinOperatorAST : public BinaryOperatorAST {
 public:
-	EqBinOperator(OperatorType _op, ASTnode *_lval, ASTnode *_rval)
-	: BinaryOperator(_op, _lval, _rval) {}
-	virtual ~EqBinOperator() = default;
+	EqBinOperatorAST(OperatorType _op, BaseAST *_lval, BaseAST *_rval)
+	: BinaryOperatorAST(_op, _lval, _rval) {}
+	virtual ~EqBinOperatorAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
 
 // UMINUS
-class UnaryMinus : public UnaryOperator {
+class UnaryMinusAST : public UnaryOperatorAST {
 public:
-	UnaryMinus(ASTnode *val)
-	: UnaryOperator(OperatorType::UMINUS, val) {}
-	virtual ~UnaryMinus() = default;
+	UnaryMinusAST(BaseAST *val)
+	: UnaryOperatorAST(OperatorType::UMINUS, val) {}
+	virtual ~UnaryMinusAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
 
 // NOT
-class UnaryNot : public UnaryOperator {
+class UnaryNotAST : public UnaryOperatorAST {
 public:
-	UnaryNot(ASTnode *val)
-	: UnaryOperator(OperatorType::NOT, val) {}
-	virtual ~UnaryNot() = default;
+	UnaryNotAST(BaseAST *val)
+	: UnaryOperatorAST(OperatorType::NOT, val) {}
+	virtual ~UnaryNotAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };

@@ -12,24 +12,30 @@ std::string value_type_to_string(const ValueType& vt) {
 	return "none";
 }
 
-Location::~Location() {
+LocationAST::~LocationAST() {
 	delete index_expr;
 }
-void Location::accept(ASTvisitor& V) {
+void LocationAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-void VariableLocation::accept(ASTvisitor& V) {
+void VariableLocationAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
-void ArrayLocation::accept(ASTvisitor& V) {
+void ArrayLocationAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
 
-std::string VariableDeclaration::to_string() {
+void VariableDeclarationAST::accept(ASTvisitor& V) {
+	V.visit(*this);
+}
+std::string VariableDeclarationAST::to_string() {
 	return value_type_to_string(type) + " " + id;
 }
 
-std::string ArrayDeclaration::to_string() {
-	return VariableDeclaration::to_string() + "[" + std::to_string(array_len) + "]";
+void ArrayDeclarationAST::accept(ASTvisitor& V) {
+	V.visit(*this);
+}
+std::string ArrayDeclarationAST::to_string() {
+	return VariableDeclarationAST::to_string() + "[" + std::to_string(array_len) + "]";
 }

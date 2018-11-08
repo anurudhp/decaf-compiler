@@ -11,7 +11,7 @@
 #include "../ast/program.hh"
 #include "../exceptions.hh"
 
-void TreeGenerator::generate(ASTnode& root, std::ostream& out) {
+void TreeGenerator::generate(BaseAST& root, std::ostream& out) {
 	try {
 		root.accept(*this);
 	} catch(...) {
@@ -51,39 +51,39 @@ void TreeGenerator::add_edge_implicit(int u, const std::string& sv) {
 }
 
 // Visit methods
-void TreeGenerator::visit(ASTnode& node) {
+void TreeGenerator::visit(BaseAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 
-void TreeGenerator::visit(Literal& node) {
+void TreeGenerator::visit(LiteralAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
-void TreeGenerator::visit(IntegerLiteral& node) {
+void TreeGenerator::visit(IntegerLiteralAST& node) {
 	int id = add_node("[LIT] " + std::to_string(node.value));
 	stack.push(id);
 }
-void TreeGenerator::visit(BooleanLiteral& node) {
+void TreeGenerator::visit(BooleanLiteralAST& node) {
 	int id = add_node(std::string("[LIT] ") + (node.value ? "TRUE" : "FALSE"));
 	stack.push(id);
 }
-void TreeGenerator::visit(StringLiteral& node) {
+void TreeGenerator::visit(StringLiteralAST& node) {
 	int id = add_node("[LIT] \'" + node.value + "\'");
 	stack.push(id);
 }
 
-void TreeGenerator::visit(Location& node) {
+void TreeGenerator::visit(LocationAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
-void TreeGenerator::visit(VariableLocation& node) {
+void TreeGenerator::visit(VariableLocationAST& node) {
 	int id = add_node(node.id);
 	stack.push(id);
 }
-void TreeGenerator::visit(ArrayLocation& node) {
+void TreeGenerator::visit(ArrayLocationAST& node) {
 	int id = add_node(node.id + "[]");
 	stack.push(id);
 }
 
-void TreeGenerator::visit(UnaryOperator& node) {
+void TreeGenerator::visit(UnaryOperatorAST& node) {
 	int id = add_node(operator_type_to_string(node.op));
 
 	node.val->accept(*this);
@@ -91,7 +91,7 @@ void TreeGenerator::visit(UnaryOperator& node) {
 	
 	stack.push(id);
 }
-void TreeGenerator::visit(BinaryOperator& node) {
+void TreeGenerator::visit(BinaryOperatorAST& node) {
 	int id = add_node(operator_type_to_string(node.op));
 
 	node.lval->accept(*this);
@@ -101,26 +101,26 @@ void TreeGenerator::visit(BinaryOperator& node) {
 	
 	stack.push(id);
 }
-void TreeGenerator::visit(ArithBinOperator& node) {
-	visit(dynamic_cast<BinaryOperator&>(node));
+void TreeGenerator::visit(ArithBinOperatorAST& node) {
+	visit(dynamic_cast<BinaryOperatorAST&>(node));
 }
-void TreeGenerator::visit(CondBinOperator& node) {
-	visit(dynamic_cast<BinaryOperator&>(node));
+void TreeGenerator::visit(CondBinOperatorAST& node) {
+	visit(dynamic_cast<BinaryOperatorAST&>(node));
 }
-void TreeGenerator::visit(RelBinOperator& node) {
-	visit(dynamic_cast<BinaryOperator&>(node));
+void TreeGenerator::visit(RelBinOperatorAST& node) {
+	visit(dynamic_cast<BinaryOperatorAST&>(node));
 }
-void TreeGenerator::visit(EqBinOperator& node) {
-	visit(dynamic_cast<BinaryOperator&>(node));
+void TreeGenerator::visit(EqBinOperatorAST& node) {
+	visit(dynamic_cast<BinaryOperatorAST&>(node));
 }
-void TreeGenerator::visit(UnaryMinus& node) {
-	visit(dynamic_cast<UnaryOperator&>(node));
+void TreeGenerator::visit(UnaryMinusAST& node) {
+	visit(dynamic_cast<UnaryOperatorAST&>(node));
 }
-void TreeGenerator::visit(UnaryNot& node) {
-	visit(dynamic_cast<UnaryOperator&>(node));
+void TreeGenerator::visit(UnaryNotAST& node) {
+	visit(dynamic_cast<UnaryOperatorAST&>(node));
 }
 
-void TreeGenerator::visit(ReturnStatement& node) {
+void TreeGenerator::visit(ReturnStatementAST& node) {
 	int id = add_node("return");
 	if (node.ret_expr != NULL) {
 		node.ret_expr->accept(*this);
@@ -128,15 +128,15 @@ void TreeGenerator::visit(ReturnStatement& node) {
 	}
 	stack.push(id);
 }
-void TreeGenerator::visit(BreakStatement& node) {
+void TreeGenerator::visit(BreakStatementAST& node) {
 	int id = add_node("break");
 	stack.push(id);
 }
-void TreeGenerator::visit(ContinueStatement& node) {
+void TreeGenerator::visit(ContinueStatementAST& node) {
 	int id = add_node("continue");
 	stack.push(id);
 }
-void TreeGenerator::visit(IfStatement& node) {
+void TreeGenerator::visit(IfStatementAST& node) {
 	int id = add_node("if");
 
 	node.cond_expr->accept(*this);
@@ -150,7 +150,7 @@ void TreeGenerator::visit(IfStatement& node) {
 
 	stack.push(id);
 }
-void TreeGenerator::visit(ForStatement& node) {
+void TreeGenerator::visit(ForStatementAST& node) {
 	int id = add_node("for");
 
 	add_edge_implicit(id, node.iterator_id);
@@ -163,7 +163,7 @@ void TreeGenerator::visit(ForStatement& node) {
 
 	stack.push(id);
 }
-void TreeGenerator::visit(AssignStatement& node) {
+void TreeGenerator::visit(AssignStatementAST& node) {
 	int id = add_node(operator_type_to_string(node.op));
 
 	node.lloc->accept(*this);
@@ -174,7 +174,7 @@ void TreeGenerator::visit(AssignStatement& node) {
 	stack.push(id);
 }
 
-void TreeGenerator::visit(StatementBlock& node) {
+void TreeGenerator::visit(StatementBlockAST& node) {
 	int id = add_node("{statement-block}");
 
 	int var_decl_id = add_node("variables");
@@ -193,7 +193,7 @@ void TreeGenerator::visit(StatementBlock& node) {
 	stack.push(id);
 }
 
-void TreeGenerator::visit(MethodDeclaration& node) {
+void TreeGenerator::visit(MethodDeclarationAST& node) {
 	int id = add_node(value_type_to_string(node.return_type) 
 					  + " " + node.name + "()");
 
@@ -208,7 +208,7 @@ void TreeGenerator::visit(MethodDeclaration& node) {
 
 	stack.push(id);
 }
-void TreeGenerator::visit(MethodCall& node) {
+void TreeGenerator::visit(MethodCallAST& node) {
 	int id = add_node("call: " + node.id);
 
 	for (auto arg: node.arguments) {
@@ -218,11 +218,11 @@ void TreeGenerator::visit(MethodCall& node) {
 
 	stack.push(id);
 }
-void TreeGenerator::visit(CalloutCall& node) {
-	visit(dynamic_cast<MethodCall&>(node));
+void TreeGenerator::visit(CalloutCallAST& node) {
+	visit(dynamic_cast<MethodCallAST&>(node));
 }
 
-void TreeGenerator::visit(Program& node) {
+void TreeGenerator::visit(ProgramAST& node) {
 	int id = add_node("Program");
 	for (auto method: node.methods) {
 		method->accept(*this);

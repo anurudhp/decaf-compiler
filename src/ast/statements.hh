@@ -6,65 +6,65 @@
 #include "variables.hh"
 #include "operators.hh"
 
-class ReturnStatement : public ASTnode {
+class ReturnStatementAST : public BaseAST {
 public:
-	ReturnStatement(ASTnode *expr = NULL)
+	ReturnStatementAST(BaseAST *expr = NULL)
 	: ret_expr(expr) {}
-	virtual ~ReturnStatement();
+	virtual ~ReturnStatementAST();
 
 	virtual void accept(ASTvisitor& V);
 
-	ASTnode *ret_expr;
+	BaseAST *ret_expr;
 };
 
-class BreakStatement : public ASTnode {
+class BreakStatementAST : public BaseAST {
 public:
-	BreakStatement() {}
-	virtual ~BreakStatement() = default;
+	BreakStatementAST() {}
+	virtual ~BreakStatementAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };	
 
-class ContinueStatement : public ASTnode {
+class ContinueStatementAST : public BaseAST {
 public:
-	ContinueStatement() {}
-	virtual ~ContinueStatement() = default;
+	ContinueStatementAST() {}
+	virtual ~ContinueStatementAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
 
-class IfStatement : public ASTnode {
+class IfStatementAST : public BaseAST {
 public:
-	IfStatement(ASTnode *cond, ASTnode *tb, ASTnode *eb)
+	IfStatementAST(BaseAST *cond, BaseAST *tb, BaseAST *eb)
 	: cond_expr(cond), then_block(tb), else_block(eb) {}
-	virtual ~IfStatement();
+	virtual ~IfStatementAST();
 
 	virtual void accept(ASTvisitor& V);
 	
-	ASTnode *cond_expr, *then_block, *else_block;
+	BaseAST *cond_expr, *then_block, *else_block;
 };
 
-class ForStatement : public ASTnode {
+class ForStatementAST : public BaseAST {
 public:
-	ForStatement(const std::string _id, ASTnode *st, ASTnode *en, ASTnode *b)
+	ForStatementAST(const std::string _id, BaseAST *st, BaseAST *en, BaseAST *b)
 	: iterator_id(_id), start_expr(st), end_expr(en), block(b) {}
-	virtual ~ForStatement();
+	virtual ~ForStatementAST();
 
 	virtual void accept(ASTvisitor& V);
 
 	std::string iterator_id;
-	ASTnode *start_expr, *end_expr, *block;
+	BaseAST *start_expr, *end_expr, *block;
 };
 
-class AssignStatement : public ASTnode {
+class AssignStatementAST : public BaseAST {
 	public:
-	AssignStatement(OperatorType _op, Location *_lloc, ASTnode *_rval)
+	AssignStatementAST(OperatorType _op, LocationAST *_lloc, BaseAST *_rval)
 	: op(_op), lloc(_lloc), rval(_rval) {}
-	virtual ~AssignStatement();
+	virtual ~AssignStatementAST();
 
 	virtual void accept(ASTvisitor& V);
 
 	OperatorType op;
-	Location *lloc;
-	ASTnode *rval;
+	LocationAST *lloc;
+	BaseAST *rval;
 };

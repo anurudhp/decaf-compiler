@@ -6,15 +6,15 @@
 #include "variables.hh"
 #include "methods.hh"
 
-class Program : public ASTnode {
+class ProgramAST : public BaseAST {
 public:
-	Program(const std::vector<VariableDeclaration *>& _glob_vars,
-			const std::vector<MethodDeclaration *>& _methods)
+	ProgramAST(const std::vector<VariableDeclarationAST *>& _glob_vars,
+			const std::vector<MethodDeclarationAST *>& _methods)
 	: global_variables(_glob_vars), methods(_methods) {} 
-	virtual ~Program();
+	virtual ~ProgramAST();
 
 	virtual void accept(ASTvisitor& V);
 
-	std::vector<VariableDeclaration *> global_variables;
-	std::vector<MethodDeclaration *> methods;
+	std::vector<VariableDeclarationAST *> global_variables;
+	std::vector<MethodDeclarationAST *> methods;
 };

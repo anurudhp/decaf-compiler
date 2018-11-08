@@ -1,7 +1,7 @@
 #include "blocks.hh"
 #include "../visitors/visitor.hh"
 
-StatementBlock::~StatementBlock() {
+StatementBlockAST::~StatementBlockAST() {
 	for (auto statement: statements) {
 		delete statement;
 	}
@@ -9,6 +9,6 @@ StatementBlock::~StatementBlock() {
 		delete var;
 	}
 }
-void StatementBlock::accept(ASTvisitor& V) {
+void StatementBlockAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }

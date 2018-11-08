@@ -5,16 +5,16 @@
 #include "ast.hh"
 #include "variables.hh"
 
-class StatementBlock : public ASTnode {
+class StatementBlockAST : public BaseAST {
 public:
-	StatementBlock(const std::vector<VariableDeclaration *>& _var_decl,
-				   const std::vector<ASTnode *>& _stmts)
+	StatementBlockAST(const std::vector<VariableDeclarationAST *>& _var_decl,
+				   const std::vector<BaseAST *>& _stmts)
 	: variable_declarations(_var_decl),
 	  statements(_stmts) {}
-	virtual ~StatementBlock();
+	virtual ~StatementBlockAST();
 
 	virtual void accept(ASTvisitor& V);
 
-	std::vector<VariableDeclaration *> variable_declarations;
-	std::vector<ASTnode *> statements;
+	std::vector<VariableDeclarationAST *> variable_declarations;
+	std::vector<BaseAST *> statements;
 };

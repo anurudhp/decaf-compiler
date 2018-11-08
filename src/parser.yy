@@ -13,11 +13,11 @@
 	enum class OperatorType;
 	enum class ValueType;
 
-	class ASTnode;
-	class Location;
-	class VariableDeclaration;
-	class StatementBlock;
-	class MethodDeclaration;
+	class BaseAST;
+	class LocationAST;
+	class VariableDeclarationAST;
+	class StatementBlockAST;
+	class MethodDeclarationAST;
 }
 
 %parse-param {Driver& driver}
@@ -60,18 +60,18 @@
 	// enum/struct types
 	OperatorType op;
 	ValueType vt;
-	VariableDeclaration *decl;
 
 	// AST types
-	ASTnode *ast;
-	Location *loc;
-	StatementBlock *block;
-	MethodDeclaration *method;
+	BaseAST *ast;
+	VariableDeclarationAST *decl;
+	LocationAST *loc;
+	StatementBlockAST *block;
+	MethodDeclarationAST *method;
 
 	// vectors
-	std::vector<VariableDeclaration *> *var_decl;
-	std::vector<ASTnode *> *nodes;
-	std::vector<MethodDeclaration *> *methods;
+	std::vector<VariableDeclarationAST *> *var_decl;
+	std::vector<BaseAST *> *nodes;
+	std::vector<MethodDeclarationAST *> *methods;
 }
 
  /**********************
@@ -134,7 +134,7 @@ program : CLASS ID '{' field_decl_list method_decl_list '}' {
 																	return 1;
 																}
 
-																driver.root = new Program(*$4, *$5);
+																driver.root = new ProgramAST(*$4, *$5);
 																delete $4;
 																delete $5;
 															}
@@ -152,7 +152,7 @@ field_decl_list : field_decl_list field_decl {
 												delete $2;
 											}
 		  		| %empty {
-		  					$$ = new std::vector<VariableDeclaration *>();
+		  					$$ = new std::vector<VariableDeclarationAST *>();
 		  				}
 		  		;
 field_decl : type glob_var_decl_list ';' {
@@ -164,7 +164,7 @@ field_decl : type glob_var_decl_list ';' {
 		   ;
 
 glob_var_decl_list : glob_var_decl {
-										$$ = new std::vector<VariableDeclaration *>();
+										$$ = new std::vector<VariableDeclarationAST *>();
 										$$->push_back($1); 
 								}
 				   | glob_var_decl ',' glob_var_decl_list {
@@ -173,11 +173,11 @@ glob_var_decl_list : glob_var_decl {
 														}
 				   ;
 glob_var_decl : ID { 
-						$$ = new VariableDeclaration(std::string($1)); 
+						$$ = new VariableDeclarationAST(std::string($1)); 
 						$$->set_location(@$);
 				}
 			  | ID '[' INT_LIT ']' { 
-			  							$$ = new ArrayDeclaration(std::string(std::string($1)), $3); 
+			  							$$ = new ArrayDeclarationAST(std::string(std::string($1)), $3); 
 			  							$$->set_location(@$);
 			  					}
 			  ;
@@ -188,29 +188,29 @@ method_decl_list : method_decl_list method_decl {
 													$$->push_back($2);
 												}
 				 | method_decl 	{
-				 					$$ = new std::vector<MethodDeclaration *>();
+				 					$$ = new std::vector<MethodDeclarationAST *>();
 				 					$$->push_back($1);
 				 				}
 				 ;
 method_decl : type ID '(' param_list ')' block {
 													std::reverse($4->begin(), $4->end());
-													$$ = new MethodDeclaration($1, $2, *$4, $6);
+													$$ = new MethodDeclarationAST($1, $2, *$4, $6);
 													$$->set_location(@2);
 													delete $4;
 											}
 			| VOID ID '(' param_list ')' block {
 													std::reverse($4->begin(), $4->end());
-													$$ = new MethodDeclaration(ValueType::VOID, $2, *$4, $6);
+													$$ = new MethodDeclarationAST(ValueType::VOID, $2, *$4, $6);
 													$$->set_location(@2);
 													delete $4;
 											}
 			;
 
 param_list : param_list_non_empty { $$ = $1; }
-		   | %empty { $$ = new std::vector<VariableDeclaration *>(); }
+		   | %empty { $$ = new std::vector<VariableDeclarationAST *>(); }
 		   ;
 param_list_non_empty : param {
-								$$ = new std::vector<VariableDeclaration *>();
+								$$ = new std::vector<VariableDeclarationAST *>();
 								$$->push_back($1);
 							 }
 		   			 | param ',' param_list_non_empty { 
@@ -218,12 +218,12 @@ param_list_non_empty : param {
 		   			 									$$->push_back($1);
 		   			 								}
 		   			 ;
-param : type ID { $$ = new VariableDeclaration(std::string($2), $1); $$->set_location(@$); }
+param : type ID { $$ = new VariableDeclarationAST(std::string($2), $1); $$->set_location(@$); }
 	  ;
 
 // Statement block
 block : '{' var_decl_list statement_list '}' { 
-												$$ = new StatementBlock(*$2, *$3); 
+												$$ = new StatementBlockAST(*$2, *$3); 
 												$$->set_location(@$);
 												delete $2;
 												delete $3;
@@ -235,7 +235,7 @@ var_decl_list : var_decl_list var_decl {
 											$$->insert($$->end(), $2->rbegin(), $2->rend());
 											delete $2;
 										}
-			  | %empty { $$ = new std::vector<VariableDeclaration *>(); }
+			  | %empty { $$ = new std::vector<VariableDeclarationAST *>(); }
 			  ;
 var_decl : type var_list ';' {
 								$$ = $2;
@@ -245,13 +245,13 @@ var_decl : type var_list ';' {
 							 }
 		 ;
 var_list : ID { 
-				$$ = new std::vector<VariableDeclaration *>(); 
-				$$->push_back(new VariableDeclaration($1, ValueType::NONE)); 
+				$$ = new std::vector<VariableDeclarationAST *>(); 
+				$$->push_back(new VariableDeclarationAST($1, ValueType::NONE)); 
 				$$->back()->set_location(@$);
 			  }
 		 | ID ',' var_list  {
 								$$ = $3;
-								$$->push_back(new VariableDeclaration($1, ValueType::NONE));
+								$$->push_back(new VariableDeclarationAST($1, ValueType::NONE));
 								$$->back()->set_location(@$);
 							}
 		 ;
@@ -261,16 +261,16 @@ statement_list : statement_list statement    {
 												$$ = $1;
 												$$->push_back($2);
 											}
-			   | %empty { $$ = new std::vector<ASTnode *>(); }
+			   | %empty { $$ = new std::vector<BaseAST *>(); }
 			   ;
-statement : location assign_op expr ';' { $$ = new AssignStatement($2, $1, $3); $$->set_location(@$); }
+statement : location assign_op expr ';' { $$ = new AssignStatementAST($2, $1, $3); $$->set_location(@$); }
 		  | method_call ';' { $$ = $1; }
-		  | IF '(' expr ')' block else_block { $$ = new IfStatement($3, $5, $6); $$->set_location(@$); }
-		  | FOR ID ASSIGN expr ',' expr block { $$ = new ForStatement($2, $4, $6, $7); $$->set_location(@$); }
-		  | BREAK ';' { $$ = new BreakStatement(); $$->set_location(@$); }
-		  | CONTINUE ';' { $$ = new ContinueStatement(); $$->set_location(@$); }
-		  | RETURN expr ';' { $$ = new ReturnStatement($2); $$->set_location(@$); }
-		  | RETURN ';' { $$ = new ReturnStatement(); $$->set_location(@$); }
+		  | IF '(' expr ')' block else_block { $$ = new IfStatementAST($3, $5, $6); $$->set_location(@$); }
+		  | FOR ID ASSIGN expr ',' expr block { $$ = new ForStatementAST($2, $4, $6, $7); $$->set_location(@$); }
+		  | BREAK ';' { $$ = new BreakStatementAST(); $$->set_location(@$); }
+		  | CONTINUE ';' { $$ = new ContinueStatementAST(); $$->set_location(@$); }
+		  | RETURN expr ';' { $$ = new ReturnStatementAST($2); $$->set_location(@$); }
+		  | RETURN ';' { $$ = new ReturnStatementAST(); $$->set_location(@$); }
 		  | block { $$ = $1; }
 		  ;
 
@@ -290,62 +290,62 @@ expr : location { $$ = $1; }
 
 	 | '(' expr ')' { $$ = $2; }
 	 
-	 | SUB expr %prec UMINUS { $$ = new UnaryMinus($2); $$->set_location(@$); }
-	 | NOT expr { $$ = new UnaryNot($2); $$->set_location(@$); }
+	 | SUB expr %prec UMINUS { $$ = new UnaryMinusAST($2); $$->set_location(@$); }
+	 | NOT expr { $$ = new UnaryNotAST($2); $$->set_location(@$); }
 	 
-	 | expr ADD expr { $$ = new ArithBinOperator(OperatorType::ADD, $1, $3); $$->set_location(@$); } 
-	 | expr SUB expr { $$ = new ArithBinOperator(OperatorType::SUB, $1, $3); $$->set_location(@$); }
-	 | expr MUL expr { $$ = new ArithBinOperator(OperatorType::MUL, $1, $3); $$->set_location(@$); }
-	 | expr DIV expr { $$ = new ArithBinOperator(OperatorType::DIV, $1, $3); $$->set_location(@$); }
-	 | expr MOD expr { $$ = new ArithBinOperator(OperatorType::MOD, $1, $3); $$->set_location(@$); }
+	 | expr ADD expr { $$ = new ArithBinOperatorAST(OperatorType::ADD, $1, $3); $$->set_location(@$); } 
+	 | expr SUB expr { $$ = new ArithBinOperatorAST(OperatorType::SUB, $1, $3); $$->set_location(@$); }
+	 | expr MUL expr { $$ = new ArithBinOperatorAST(OperatorType::MUL, $1, $3); $$->set_location(@$); }
+	 | expr DIV expr { $$ = new ArithBinOperatorAST(OperatorType::DIV, $1, $3); $$->set_location(@$); }
+	 | expr MOD expr { $$ = new ArithBinOperatorAST(OperatorType::MOD, $1, $3); $$->set_location(@$); }
 	 
-	 | expr AND expr { $$ = new CondBinOperator(OperatorType::AND, $1, $3); $$->set_location(@$); }
-	 | expr OR expr  { $$ = new CondBinOperator(OperatorType::OR, $1, $3); $$->set_location(@$); }
+	 | expr AND expr { $$ = new CondBinOperatorAST(OperatorType::AND, $1, $3); $$->set_location(@$); }
+	 | expr OR expr  { $$ = new CondBinOperatorAST(OperatorType::OR, $1, $3); $$->set_location(@$); }
 
-	 | expr LE expr  { $$ = new RelBinOperator(OperatorType::LE, $1, $3); $$->set_location(@$); } 
-	 | expr LT expr  { $$ = new RelBinOperator(OperatorType::LT, $1, $3); $$->set_location(@$); } 
-	 | expr GE expr  { $$ = new RelBinOperator(OperatorType::GE, $1, $3); $$->set_location(@$); }
-	 | expr GT expr  { $$ = new RelBinOperator(OperatorType::GT, $1, $3); $$->set_location(@$); }
-	 | expr EQ expr  { $$ = new EqBinOperator(OperatorType::EQ, $1, $3); $$->set_location(@$); }
-	 | expr NE expr  { $$ = new EqBinOperator(OperatorType::NE, $1, $3); $$->set_location(@$); }
+	 | expr LE expr  { $$ = new RelBinOperatorAST(OperatorType::LE, $1, $3); $$->set_location(@$); } 
+	 | expr LT expr  { $$ = new RelBinOperatorAST(OperatorType::LT, $1, $3); $$->set_location(@$); } 
+	 | expr GE expr  { $$ = new RelBinOperatorAST(OperatorType::GE, $1, $3); $$->set_location(@$); }
+	 | expr GT expr  { $$ = new RelBinOperatorAST(OperatorType::GT, $1, $3); $$->set_location(@$); }
+	 | expr EQ expr  { $$ = new EqBinOperatorAST(OperatorType::EQ, $1, $3); $$->set_location(@$); }
+	 | expr NE expr  { $$ = new EqBinOperatorAST(OperatorType::NE, $1, $3); $$->set_location(@$); }
 	 ;
 
-location : ID { std::string id($1); $$ = new VariableLocation(id); $$->set_location(@$); }
-		 | ID '[' expr ']' { std::string id($1); $$ = new ArrayLocation(id, $3); $$->set_location(@$); }
+location : ID { std::string id($1); $$ = new VariableLocationAST(id); $$->set_location(@$); }
+		 | ID '[' expr ']' { std::string id($1); $$ = new ArrayLocationAST(id, $3); $$->set_location(@$); }
 		 ;
 		 
 /* method calls */
 method_call : ID '(' args ')' { 
 								std::reverse($3->begin(), $3->end());
-								$$ = new MethodCall(std::string($1), *$3);
+								$$ = new MethodCallAST(std::string($1), *$3);
 								$$->set_location(@$); 
 								delete $3; 
 							}
 			| CALLOUT '(' STRING_LIT callout_arg_list ')' { 
 															std::reverse($4->begin(), $4->end());
-															$$ = new CalloutCall(std::string($3), *$4); 
+															$$ = new CalloutCallAST(std::string($3), *$4); 
 															$$->set_location(@$); 
 															delete $4;
 														}
 			;
 
 callout_arg_list : ',' callout_arg callout_arg_list { ($$ = $3)->push_back($2); }
-				 | %empty { $$ = new std::vector<ASTnode *>(); }
+				 | %empty { $$ = new std::vector<BaseAST *>(); }
 				 ;
 callout_arg : arg { $$ = $1; }
 			| STRING_LIT { 
 							std::string lit($1);
 							lit = lit.substr(1, lit.size() - 2);
-							$$ = new StringLiteral(lit);
+							$$ = new StringLiteralAST(lit);
 							$$->set_location(@$); 
 						} 
 			; 
 
 args : arg_list { $$ = $1; }
-	 | %empty { $$ = new std::vector<ASTnode *>(); } 
+	 | %empty { $$ = new std::vector<BaseAST *>(); } 
 	 ;
 arg_list : arg 	{
-					$$ = new std::vector<ASTnode *>();
+					$$ = new std::vector<BaseAST *>();
 					$$->push_back($1);
 				}
 		 | arg ',' arg_list { ($$ = $3)->push_back($1); }
@@ -354,9 +354,9 @@ arg: expr { $$ = $1; }
    ;
 
 /* literals */
-literal : INT_LIT { $$ = new IntegerLiteral($1); $$->set_location(@$); }
-		| BOOL_LIT { $$ = new BooleanLiteral($1); $$->set_location(@$); }
-		| CHAR_LIT { $$ = new IntegerLiteral($1); $$->set_location(@$); }
+literal : INT_LIT { $$ = new IntegerLiteralAST($1); $$->set_location(@$); }
+		| BOOL_LIT { $$ = new BooleanLiteralAST($1); $$->set_location(@$); }
+		| CHAR_LIT { $$ = new IntegerLiteralAST($1); $$->set_location(@$); }
 
 %%
 
@@ -403,6 +403,8 @@ int main(int argc, char **argv) {
 
 	delete analyzer;
 
+	// code generation (LLVM IR)
+	
 	// cleanup
 	delete driver.root;
 	delete driver.parser;

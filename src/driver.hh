@@ -6,7 +6,7 @@ namespace Decaf {
 		class Scanner *scanner;
 		class Parser *parser;
 
-		class ASTnode *root;
+		class BaseAST *root;
 
 		Driver() = default;
 		~Driver() = default;
