@@ -21,7 +21,8 @@ protected:
 	class SymbolTable {
 	public:
 		SymbolTable(SemanticAnalyzer& _analyzer)
-		: analyzer(_analyzer), variables(0), methods(), scope_depth(0) {}
+		: analyzer(_analyzer), variables(0), methods(), 
+		  scope_depth(0), hold_depth(0) {}
 		~SymbolTable() = default;
 
 		SemanticAnalyzer& analyzer;
@@ -33,25 +34,32 @@ protected:
 
 		// add a variable to the table
 		void add_variable(VariableDeclaration *variable);
+		void add_array(ArrayDeclaration *array);
 		// add a function to the table
 		void add_method(MethodDeclaration *method);
 
 		// lookup:
-		VariableDeclaration* lookup_variable(Location *varloc);
+		VariableDeclaration* lookup_variable(VariableLocation *varloc);
+		ArrayDeclaration* lookup_array_element(ArrayLocation *arrloc);
 		MethodDeclaration* lookup_method(MethodCall *mcall);
 
 		std::vector<
 			std::map<std::string, VariableDeclaration *>
 		> variables;
+		std::map<std::string, ArrayDeclaration *> arrays;
 		std::map<std::string, MethodDeclaration *> methods;
-		int scope_depth;
+		int scope_depth, hold_depth;
 	};
 
 	void log_error(const int error_type, const std::string& location, const std::string& fmt, ...);
 
 private:
 	SymbolTable *symbol_table;
-	// std::stack<ValueType> type_stack;
+	int for_loop_depth;
+	MethodDeclaration *current_method;
+
+	std::stack<ValueType> type_stack;
+	ValueType get_top_type(bool pop = true);
 
 	std::vector<std::pair<int, std::string>> errors;
 	const static int BUFFER_LENGTH = 100;

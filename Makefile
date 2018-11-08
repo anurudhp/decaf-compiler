@@ -44,7 +44,7 @@ parser: bin/decaf
 test: parser
 	@for i in `ls test-programs`; do  			 			\
 		echo program: $$i ;									\
-		./bin/decaf <test-programs/$$i >/dev/null;			\
+		./bin/decaf test-programs/$$i ;			\
 	done;
 
 clean:

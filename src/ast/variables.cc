@@ -4,7 +4,7 @@
 std::string value_type_to_string(const ValueType& vt) {
 	if (vt == ValueType::VOID) return "void";
 	if (vt == ValueType::INT) return "int";
-	if (vt == ValueType::BOOL) return "bool";
+	if (vt == ValueType::BOOL) return "boolean";
 	if (vt == ValueType::CHAR) return "char";
 	if (vt == ValueType::STRING) return "string";
 	if (vt == ValueType::INT_ARRAY) return "int_array";

@@ -15,6 +15,10 @@
 
 /*** SemanticAnalyzer::SymbolTable ***/
 void SemanticAnalyzer::SymbolTable::block_start() {
+	if (hold_depth > 0) {
+		hold_depth--;
+		return;
+	}
 	variables.emplace_back();
 	scope_depth++;
 }
@@ -30,26 +34,56 @@ void SemanticAnalyzer::SymbolTable::add_variable(VariableDeclaration *variable) 
 	if (current_scope.count(variable->id)) {
 		auto previous_decl = current_scope[variable->id];
 		analyzer.log_error(1, variable->location,
-						   "Redeclaration of variable `%s` (previously declared at [%s]: `%s %s`)",
+						   "Redeclaration of variable `%s` (previously declared at [%s]: `%s`)",
 						   variable->id.c_str(),
 						   previous_decl->location.c_str(),
-						   value_type_to_string(previous_decl->type).c_str(),
-						   previous_decl->id.c_str());
+						   previous_decl->to_string().c_str());
 		return;
 	}
 	
-	if (scope_depth == 1 && methods.count(variable->id)) {
-		// method name collisions only occur at global scope
-		auto previous_decl = methods[variable->id];
-		analyzer.log_error(1, variable->location,
-						   "Invalid reuse of method name `%s` for variable (previously declared at [%s]: `%s`)",
-						   variable->id.c_str(),
-						   previous_decl->location.c_str(),
-						   "");
-		return;
+	if (scope_depth == 1) {
+		if (arrays.count(variable->id)) {
+			auto previous_decl = arrays[variable->id];
+			analyzer.log_error(1, variable->location,
+							   "Redeclaration of variable `%s` (previously declared at [%s]: `%s`)",
+							   variable->id.c_str(),
+							   previous_decl->location.c_str(),
+							   previous_decl->to_string().c_str());
+			return;
+		}
 	}
 
 	current_scope[variable->id] = variable;
+}
+void SemanticAnalyzer::SymbolTable::add_array(ArrayDeclaration *array) {
+	if (arrays.count(array->id)) {
+		auto previous_decl = arrays[array->id];
+		analyzer.log_error(1, array->location,
+						   "Redeclaration of array `%s` (previously declared at [%s]: `%s`)",
+						   array->id.c_str(),
+						   previous_decl->location.c_str(),
+						   previous_decl->to_string().c_str());
+		return;
+	}
+
+	auto& current_scope = variables[0];
+	if (current_scope.count(array->id)) {
+		auto previous_decl = current_scope[array->id];
+		analyzer.log_error(1, array->location,
+						   "Redeclaration of array `%s` (previously declared at [%s]: `%s`)",
+						   array->id.c_str(),
+						   previous_decl->location.c_str(),
+						   previous_decl->to_string().c_str());
+		return;
+	}
+
+	if (array->array_len == 0) {
+		analyzer.log_error(4, array->location,
+						   "Array length cannot be zero! (declared `%s`)",
+						   array->to_string().c_str());
+	}
+
+	arrays[array->id] = array;
 }
 
 void SemanticAnalyzer::SymbolTable::add_method(MethodDeclaration *method) {
@@ -73,28 +107,42 @@ void SemanticAnalyzer::SymbolTable::add_method(MethodDeclaration *method) {
 						   previous_decl->to_string().c_str());
 		return;
 	}
-	
+
+	if (arrays.count(method->name)) {
+		auto previous_decl = arrays[method->name];
+		analyzer.log_error(1, method->location,
+						   "Invalid reuse of array name `%s` for method (previously declared at [%s]: `%s`)",
+						   method->name.c_str(),
+						   previous_decl->location.c_str(),
+						   previous_decl->to_string().c_str());
+		return;
+	}
+
 	methods[method->name] = method;
 }
 
 // lookup
-VariableDeclaration* SemanticAnalyzer::SymbolTable::lookup_variable(Location *varloc) {
+VariableDeclaration* SemanticAnalyzer::SymbolTable::lookup_variable(VariableLocation *varloc) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(varloc->id)) {
-			auto decl = variables[i][varloc->id];
-			// check access type: array/scalar
-			// if (varloc->index_expr == NULL) {
-				
-			// }
-			return decl;
+			return variables[i][varloc->id];
 		}
 	}
 
-	if (methods.count(varloc->id)) {
+	if (arrays.count(varloc->id)) {
+		auto decl = arrays[varloc->id];
 		analyzer.log_error(9, varloc->location,
-						   "Invalid use of method `%s` as location (declared at [%s])",
+						   "Invalid use of array `%s` as variable (declared at [%s]: `%s`)",
 						   varloc->id.c_str(),
-						   methods[varloc->id]->location.c_str());
+						   decl->location.c_str(),
+						   decl->to_string().c_str());
+	} else if (methods.count(varloc->id)) {
+		auto decl = methods[varloc->id];
+		analyzer.log_error(9, varloc->location,
+						   "Invalid use of method `%s` as variable (declared at [%s]: `%s`)",
+						   varloc->id.c_str(),
+						   decl->location.c_str(),
+						   decl->to_string().c_str());
 	} else {
 		analyzer.log_error(2, varloc->location,
 						   "Variable `%s` not declared",
@@ -102,18 +150,57 @@ VariableDeclaration* SemanticAnalyzer::SymbolTable::lookup_variable(Location *va
 	}
 	return NULL;
 }
+ArrayDeclaration* SemanticAnalyzer::SymbolTable::lookup_array_element(ArrayLocation *arrloc) {
+	for (int i = scope_depth - 1; i >= 0; i--) {
+		if (variables[i].count(arrloc->id)) {
+			auto decl = variables[i][arrloc->id];
+			analyzer.log_error(9, arrloc->location,
+							   "Invalid use of scalar variable `%s` as array (declared at [%s]: `%s`)",
+							   arrloc->id.c_str(),
+							   decl->location.c_str(),
+							   decl->to_string().c_str());
+			return NULL;
+		}
+	}
+
+	if (arrays.count(arrloc->id)) {
+		return arrays[arrloc->id];
+	} else if (methods.count(arrloc->id)) {
+		auto decl = methods[arrloc->id];
+		analyzer.log_error(9, arrloc->location,
+						   "Invalid use of method `%s` as array (declared at [%s]: `%s`)",
+						   arrloc->id.c_str(),
+						   decl->location.c_str(),
+						   decl->to_string().c_str());
+	} else {
+		analyzer.log_error(2, arrloc->location,
+						   "Array `%s` not declared",
+						   arrloc->id.c_str());
+	}
+	return NULL;
+}
+
 MethodDeclaration* SemanticAnalyzer::SymbolTable::lookup_method(MethodCall *mcall) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(mcall->id)) {
 			auto decl = variables[i][mcall->id];
 			analyzer.log_error(2, mcall->location,
-							   "Invalid use of variable `%s` as method (declared at [%s]: `%s %s`",
+							   "Invalid use of variable `%s` as method (declared at [%s]: `%s`",
 							   mcall->id.c_str(),
 							   decl->location.c_str(),
-							   value_type_to_string(decl->type).c_str(),
-							   decl->id.c_str());
+							   decl->to_string().c_str());
 			return NULL;
 		}
+	}
+
+	if (arrays.count(mcall->id)) {
+		auto decl = arrays[mcall->id];
+		analyzer.log_error(2, mcall->location,
+						   "Invalid use of array `%s` as method (declared at [%s]: `%s`",
+						   mcall->id.c_str(),
+						   decl->location.c_str(),
+						   decl->to_string().c_str());
+		return NULL;
 	}
 
 	if (methods.count(mcall->id)) {
@@ -140,7 +227,10 @@ void SemanticAnalyzer::log_error(const int error_type,
 
 	// errors
 	std::string msg(_buffer);
-	if (!location.empty()) msg = "[" + location + "] " + msg;
+	if (!location.empty()) {
+		snprintf(_buffer, BUFFER_LENGTH, "[%s] ", location.c_str());
+		msg = _buffer + msg;
+	}
 	errors.emplace_back(error_type, msg);
 }
 
@@ -154,10 +244,17 @@ bool SemanticAnalyzer::check(ASTnode& root) {
 void SemanticAnalyzer::display(std::ostream& out, const bool show_rules) {
 	for (auto& err: errors) {
 		if (show_rules) {
-			out << "{Rule:" << err.first << "} ";
+			snprintf(_buffer, BUFFER_LENGTH, "{Rule:%2d} ", err.first);
+			out << _buffer;
 		}
 		out << err.second << "\n";
 	}
+}
+
+ValueType SemanticAnalyzer::get_top_type(bool pop) {
+	ValueType res = type_stack.top();
+	if (pop) type_stack.pop();
+	return res;
 }
 
 // Visit functions
@@ -170,13 +267,13 @@ void SemanticAnalyzer::visit(Literal& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 void SemanticAnalyzer::visit(IntegerLiteral& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	type_stack.push(ValueType::INT);
 }
 void SemanticAnalyzer::visit(BooleanLiteral& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	type_stack.push(ValueType::BOOL);
 }
 void SemanticAnalyzer::visit(StringLiteral& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	type_stack.push(ValueType::STRING);
 }
 
 // variables.hh
@@ -184,10 +281,20 @@ void SemanticAnalyzer::visit(Location& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 void SemanticAnalyzer::visit(VariableLocation& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	auto decl = symbol_table->lookup_variable(&node);
+	type_stack.push(decl ? decl->type : ValueType::NONE);
 }
 void SemanticAnalyzer::visit(ArrayLocation& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	auto decl = symbol_table->lookup_array_element(&node);
+	type_stack.push(decl ? decl->type : ValueType::NONE);
+
+	node.index_expr->accept(*this);
+	ValueType index_type = get_top_type();
+	if (index_type != ValueType::INT && index_type != ValueType::NONE) {
+		log_error(10, node.location,
+				  "Invalid index for array, expected `int` expression, got `%s`",
+				  value_type_to_string(index_type).c_str());
+	}
 }
 
 // operators.hh
@@ -198,71 +305,303 @@ void SemanticAnalyzer::visit(BinaryOperator& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 void SemanticAnalyzer::visit(ArithBinOperator& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	bool has_error = false;
+
+	for (auto val: {node.lval, node.rval}) {
+		val->accept(*this);
+		ValueType res = get_top_type();
+		if (res != ValueType::INT) {
+			has_error = true;
+			if (res == ValueType::NONE) continue;
+			log_error(12, val->location,
+					  "Invalid operand for `%s`: Expected `int`, got `%s`",
+					  operator_type_to_string(node.op).c_str(),
+					  value_type_to_string(res).c_str());
+		}
+	}
+	
+	type_stack.push(has_error ? ValueType::NONE : ValueType::INT);
 }
 void SemanticAnalyzer::visit(CondBinOperator& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	bool has_error = false;
+
+	for (auto val: {node.lval, node.rval}) {
+		val->accept(*this);
+		ValueType res = get_top_type();
+		if (res != ValueType::BOOL) {
+			has_error = true;
+			if (res == ValueType::NONE) continue;
+			log_error(14, val->location,
+					  "Invalid operand for `%s`: Expected `boolean`, got `%s`",
+					  operator_type_to_string(node.op).c_str(),
+					  value_type_to_string(res).c_str());
+		}
+	}
+	
+	type_stack.push(has_error ? ValueType::NONE : ValueType::BOOL);
 }
 void SemanticAnalyzer::visit(RelBinOperator& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	bool has_error = false;
+
+	for (auto val: {node.lval, node.rval}) {
+		val->accept(*this);
+		ValueType res = get_top_type();
+		if (res != ValueType::INT) {
+			has_error = true;
+			if (res == ValueType::NONE) continue;
+			log_error(12, val->location,
+					  "Invalid operand for `%s`: Expected `int`, got `%s`",
+					  operator_type_to_string(node.op).c_str(),
+					  value_type_to_string(res).c_str());
+		}
+	}
+	
+	type_stack.push(has_error ? ValueType::NONE : ValueType::BOOL);
 }
 void SemanticAnalyzer::visit(EqBinOperator& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	bool has_error = false;
+
+	node.lval->accept(*this);
+	ValueType ltype = get_top_type();
+	node.rval->accept(*this);
+	ValueType rtype = get_top_type();
+
+	if (ltype != rtype) {
+		if (ltype != ValueType::NONE && rtype != ValueType::NONE) {
+			log_error(12, node.location,
+					  "Invalid operands for `%s`: Expected same type, got `%s` and `%s`",
+					  operator_type_to_string(node.op).c_str(),
+					  value_type_to_string(ltype).c_str(),
+					  value_type_to_string(rtype).c_str());
+		}
+		has_error = true;
+	}
+
+	type_stack.push(has_error ? ValueType::NONE : ValueType::BOOL);
 }
+
 void SemanticAnalyzer::visit(UnaryMinus& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	node.val->accept(*this);
+	ValueType res = get_top_type();
+	if (res != ValueType::INT && res != ValueType::NONE) {
+		log_error(12, node.val->location,
+				  "Invalid operand for `%s`: Expected `int`, got `%s`",
+				  operator_type_to_string(node.op).c_str(),
+				  value_type_to_string(res).c_str());
+	}
+
+	type_stack.push(res);
 }
 void SemanticAnalyzer::visit(UnaryNot& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	node.val->accept(*this);
+	ValueType res = get_top_type();
+	if (res != ValueType::BOOL && res != ValueType::NONE) {
+		log_error(14, node.val->location,
+				  "Invalid operand for `%s`: Expected `boolean`, got `%s`",
+				  operator_type_to_string(node.op).c_str(),
+				  value_type_to_string(res).c_str());
+	}
+
+	type_stack.push(res);
 }
 
 // statements.hh
 void SemanticAnalyzer::visit(ReturnStatement& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	if (current_method->return_type == ValueType::VOID 
+		&& node.ret_expr != NULL) {
+		log_error(7, node.location,
+				  "Unexpected return expression for method `%s`",
+				  current_method->to_string().c_str());
+	}
+
+	if (current_method->return_type != ValueType::VOID) {
+		ValueType ret_type = ValueType::VOID;
+		if (node.ret_expr != NULL) {
+			node.ret_expr->accept(*this);
+			ret_type = get_top_type();
+		}
+
+		if (ret_type == ValueType::NONE) return;
+
+		if (ret_type != current_method->return_type) {
+			log_error(8, node.location,
+					  "In method `%s`: Expected `%s` return expression, got `%s`",
+					  current_method->to_string().c_str(),
+					  value_type_to_string(current_method->return_type).c_str(),
+					  value_type_to_string(ret_type).c_str());
+		}
+	}
 }
 void SemanticAnalyzer::visit(BreakStatement& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	if (for_loop_depth == 0) {
+		log_error(18, node.location,
+				  "Unexpected break");
+	}
 }
 void SemanticAnalyzer::visit(ContinueStatement& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	if (for_loop_depth == 0) {
+		log_error(18, node.location,
+				  "Unexpected continue");
+	}
 }
 void SemanticAnalyzer::visit(IfStatement& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	node.cond_expr->accept(*this);
+	ValueType cond_type = get_top_type();
+	if (cond_type != ValueType::BOOL && cond_type != ValueType::NONE) {
+		log_error(11, node.location,
+				  "Expected boolean expression for `if` condition, got `%s`",
+				  value_type_to_string(cond_type).c_str());
+	}
+
+	node.then_block->accept(*this);
+	if (node.else_block != NULL) {
+		node.else_block->accept(*this);
+	}
 }
 void SemanticAnalyzer::visit(ForStatement& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	for (auto expr: {node.start_expr, node.end_expr}) {
+		expr->accept(*this);
+		ValueType type = get_top_type();
+		if (type != ValueType::INT && type != ValueType::NONE) {
+			log_error(17, expr->location,
+					  "Invalid loop bound expression: Expected `int`, got `%s`",
+					  value_type_to_string(type).c_str());
+		}
+	}
+
+	for_loop_depth++;
+	symbol_table->block_start();
+	VariableDeclaration *iter = new VariableDeclaration(node.iterator_id, ValueType::INT);
+	symbol_table->add_variable(iter);
+
+	node.block->accept(*this);
+
+	symbol_table->block_end();
+	delete iter;
+	for_loop_depth--;
 }
 void SemanticAnalyzer::visit(AssignStatement& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	node.lloc->accept(*this);
+	ValueType ltype = get_top_type();
+	node.rval->accept(*this);
+	ValueType rtype = get_top_type();
+
+	if (ltype == ValueType::NONE || rtype == ValueType::NONE) return;
+
+	if (node.op == OperatorType::ASSIGN) {
+		if (ltype != rtype) {
+			log_error(15, node.location,
+					  "Mismatched operand types for `%s`: expected same, got `%s` and `%s`",
+					  operator_type_to_string(node.op).c_str(),
+					  value_type_to_string(ltype).c_str(),
+					  value_type_to_string(rtype).c_str());
+		}
+	} else {
+		if (ltype != ValueType::INT) {
+			log_error(16, node.location,
+					  "Invalid (lvalue) location type for `%s`: expected `int`, got `%s`",
+					  operator_type_to_string(node.op).c_str(),
+					  value_type_to_string(ltype).c_str());
+		}
+		if (rtype != ValueType::INT) {
+			log_error(16, node.location,
+					  "Invalid (rvalue) expression type for `%s`: expected `int`, got `%s`",
+					  operator_type_to_string(node.op).c_str(),
+					  value_type_to_string(rtype).c_str());
+		}
+	}
 }
 
 // blocks.hh
 void SemanticAnalyzer::visit(StatementBlock& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	symbol_table->block_start();
+
+	for (auto decl: node.variable_declarations) {
+		symbol_table->add_variable(decl);
+	}
+	for (auto statement: node.statements) {
+		statement->accept(*this);
+	}
+
+	symbol_table->block_end();
 }
 
 // methods.hh
 void SemanticAnalyzer::visit(MethodDeclaration& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	symbol_table->block_start(); // method scope
+	for (auto param: node.parameters) {
+		symbol_table->add_variable(param);
+	}
+	symbol_table->hold_depth = 1; // parameter scope == function scope
+	node.body->accept(*this);
 }
+
 void SemanticAnalyzer::visit(MethodCall& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	auto decl = symbol_table->lookup_method(&node);
+	type_stack.push(decl ? decl->return_type : ValueType::NONE);
+
+	if (!decl) return;
+
+	// check: argument ~ parameter
+	if (decl->parameters.size() != node.arguments.size()) {
+		log_error(5, node.location,
+				  "Too %s arguments to method `%s` (expected %d, got %d)",
+				  (decl->parameters.size() < node.arguments.size()) ? "many" : "few",
+				  node.id.c_str(),
+				  (int) decl->parameters.size(),
+				  (int) node.arguments.size()); 
+	} else {
+		for (unsigned i = 0; i < decl->parameters.size(); i++) {
+			node.arguments[i]->accept(*this);
+			ValueType arg_type = get_top_type();
+			ValueType param_type = decl->parameters[i]->type;
+
+			if (param_type != arg_type) {
+				log_error(5, node.location,
+						  "Method call `%s(...)`: Type mismatch for parameter `%s`: expected %s, got %s",
+						  node.id.c_str(),
+						  decl->parameters[i]->id.c_str(),
+						  value_type_to_string(param_type).c_str(),
+						  value_type_to_string(arg_type).c_str());
+			}
+		}
+	}
 }
+
 void SemanticAnalyzer::visit(CalloutCall& node) {
-	throw invalid_call_error(__PRETTY_FUNCTION__);
+	for (auto arg: node.arguments) {
+		arg->accept(*this);
+		ValueType expr = get_top_type();
+		if (expr != ValueType::NONE) continue;
+		
+		if (expr != ValueType::INT && expr != ValueType::BOOL && expr != ValueType::STRING) {
+			log_error(5, arg->location,
+					  "Invalid callout argument type `%s`",
+					  value_type_to_string(expr).c_str());
+		}
+	}
+	type_stack.push(ValueType::INT);
 }
 
 // program.hh
 void SemanticAnalyzer::visit(Program& node) {
 	symbol_table->block_start(); // global scope
 
+	for_loop_depth = 0;
+
 	for (auto decl: node.global_variables) {
-		symbol_table->add_variable(decl);
+		ArrayDeclaration *adecl = dynamic_cast<ArrayDeclaration *>(decl);
+		if (adecl == NULL) {
+			symbol_table->add_variable(decl);
+		} else {
+			symbol_table->add_array(adecl);
+		}
 	}
 
 	for (auto method: node.methods) {
 		symbol_table->add_method(method);
-		// method->accept(*this);
+		current_method = method;
+		method->accept(*this);
 	}
 
 	// check for main:

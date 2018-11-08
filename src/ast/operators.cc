@@ -17,7 +17,7 @@ std::string operator_type_to_string(const OperatorType& op) {
 	if (op == OperatorType::GT) return ">";
 	if (op == OperatorType::EQ) return "==";
 	if (op == OperatorType::NE) return "!=";
-	if (op == OperatorType::ASSIGN) return ":=";
+	if (op == OperatorType::ASSIGN) return "=";
 	if (op == OperatorType::ASSIGN_ADD) return "+=";
 	if (op == OperatorType::ASSIGN_SUB) return "-=";
 	return "";
