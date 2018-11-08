@@ -397,7 +397,11 @@ int main(int argc, char **argv) {
 	SemanticAnalyzer *analyzer = new SemanticAnalyzer();
 	
 	if (!analyzer->check(*(driver.root))) {
+#ifdef DEBUG_ENABLED
 		analyzer->display(std::cerr, true);
+#else
+		analyzer->display(std::cerr);
+#endif
 		return 1;
 	}
 
