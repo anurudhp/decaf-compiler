@@ -8,13 +8,33 @@
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
 
 #include "visitor.hh"
 
 class CodeGenerator : public ASTvisitor {
 public:
-	CodeGenerator() = default;
-	virtual ~CodeGenerator() = default;
+	CodeGenerator(std::string name);
+	virtual ~CodeGenerator();
+
+	void generate(BaseAST& root);
+	void print(std::ostream& out);
+
+private:
+	// LLVM objects
+	llvm::LLVMContext context;
+	llvm::Module *module;
+	llvm::IRBuilder<> builder;
+	std::map<std::string, llvm::Value *> named_values;
+
+	// stack for return values
+	union stack_type {
+		llvm::Value *value;
+		llvm::Function *function;
+	};
+	std::stack<stack_type> return_stack;
+
+	void error(const std::string& fmt, ...);
 
 public:
 	// visits:

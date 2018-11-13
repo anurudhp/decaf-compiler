@@ -1,3 +1,9 @@
+#include <cstring>
+#include <cstdarg>
+#include <iostream>
+
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Verifier.h>
 
 #include "codegen.hh"
 #include "../ast/ast.hh"
@@ -11,6 +17,34 @@
 #include "../exceptions.hh"
 
 /*** CodeGenerator ***/
+CodeGenerator::CodeGenerator(std::string name)
+: builder(context) {
+	module = new llvm::Module(name, context);
+}
+CodeGenerator::~CodeGenerator() {
+	delete module;
+}
+
+void CodeGenerator::generate(BaseAST& root) {
+	throw unimplemented_error(__PRETTY_FUNCTION__);
+}
+
+void CodeGenerator::print(std::ostream& out) {
+	module->print(llvm::errs(), nullptr);
+	throw unimplemented_error(__PRETTY_FUNCTION__);
+}
+
+void CodeGenerator::error(const std::string& fmt, ...) {
+	static const int SIZE = 300;
+	std::string err(SIZE, '\0');
+
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(&err[0], SIZE, fmt.c_str(), args);
+	va_end(args);
+
+	std::cerr << err << '\n';
+}
 
 // visits:
 void CodeGenerator::visit(BaseAST& node) {

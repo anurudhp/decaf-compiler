@@ -46,6 +46,7 @@
 	#include "visitors/visitor.hh"
 	#include "visitors/treegen.hh"
 	#include "visitors/semantic_analyzer.hh"
+	#include "visitors/codegen.hh"
 
 	#undef yylex
 	#define yylex driver.scanner->yylex
@@ -360,14 +361,19 @@ literal : INT_LIT { $$ = new IntegerLiteralAST($1); $$->set_location(@$); }
 
 %%
 
+void show_help(bool quit = true) {
+	std::cerr << "Usage: decaf <file>.dcf\n";
+	if (quit) exit(1);
+}
+
 int main(int argc, char **argv) {
-	if (argc != 2) {
-		std::cerr << "Usage: decaf <file>.dcf\n";
-		return 1;
-	}
+	if (argc != 2) show_help();
 
 	// open input file as stream
 	std::string filename(argv[1]);
+	if (filename.size() < 4 || filename.substr(filename.size() - 4, 4) != ".dcf")
+		show_help();
+
 	std::ifstream fin(filename);
 	if (!fin.good()) {
 		std::cerr << "Error: unable to read file " << filename << "\n";
@@ -408,7 +414,14 @@ int main(int argc, char **argv) {
 	delete analyzer;
 
 	// code generation (LLVM IR)
-	
+	CodeGenerator *IR_gen = new CodeGenerator(filename);
+
+	IR_gen->generate(*(driver.root));
+
+	std::string out_filename = filename.substr(0, filename.size() - 4) + ".ll";
+	std::ofstream llout(out_filename);
+	IR_gen->print(llout);
+
 	// cleanup
 	delete driver.root;
 	delete driver.parser;

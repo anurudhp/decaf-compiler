@@ -1,5 +1,5 @@
 CXX=g++
-CXX_OPTS=-std=c++14 -Wall -g -DDEBUG_ENABLED
+CXX_OPTS=-g -DDEBUG_ENABLED
 LLVM_OPTS=`llvm-config --cxxflags --ldflags` -fexceptions
 LLVM_LINK_OPTS=`llvm-config --libs --libfiles --system-libs`
 FLEX_OPTS=
@@ -39,7 +39,7 @@ build/parser.o: src/parser.tab.cc
 	$(CXX) -c -o $@ $< $(CXX_OPTS) $(LLVM_OPTS)
 
 bin/decaf: $(OBJS)
-	$(CXX) -o $@ $^ $(CXX_OPTS) $(LLVM_OPTS) $(LLVM_LINK_OPTS)
+	$(CXX) -o $@ $^ $(LLVM_LINK_OPTS) $(CXX_OPTS) $(LLVM_OPTS)
 
 parser: bin/decaf
 
