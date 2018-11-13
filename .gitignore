@@ -7,6 +7,8 @@ src/parser.output
 src/lex.yy.cc
 src/location.hh
 src/position.hh
+*.ll
+**/*.ll
 
 #npm
 node_modules
