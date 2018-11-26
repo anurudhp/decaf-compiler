@@ -234,7 +234,8 @@ void CodeGenerator::visit(UnaryNotAST& node) {
 
 // statements.hh
 void CodeGenerator::visit(ReturnStatementAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	// throw unimplemented_error(__PRETTY_FUNCTION__);
+
 }
 void CodeGenerator::visit(BreakStatementAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
@@ -243,8 +244,38 @@ void CodeGenerator::visit(ContinueStatementAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
 }
 void CodeGenerator::visit(IfStatementAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Function *func = builder.GetInsertBlock()->getParent();
+
+	llvm::Value *cond = get_return(*node.cond_expr);
+	cond = builder.CreateICmpEQ(cond, llvm::ConstantInt::get(context, llvm::APInt(1, 1)), "ifcond");
+
+	llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(context, "then", func);
+	llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(context, "else", func);
+	llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(context, "ifcont");
+
+	builder.CreateCondBr(cond, thenBB, elseBB);
+
+	// then block
+	builder.SetInsertPoint(thenBB);
+	node.then_block->accept(*this);
+
+	builder.CreateBr(mergeBB);
+	thenBB = builder.GetInsertBlock();
+
+	// else block
+	builder.SetInsertPoint(elseBB);
+	if (node.else_block) {
+		node.else_block->accept(*this);
+	}
+
+	builder.CreateBr(mergeBB);
+	elseBB = builder.GetInsertBlock();
+
+	// continuation
+	func->getBasicBlockList().push_back(mergeBB);
+	builder.SetInsertPoint(mergeBB);
 }
+
 void CodeGenerator::visit(ForStatementAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
 }
@@ -271,6 +302,7 @@ void CodeGenerator::visit(StatementBlockAST& node) {
 	symbol_table.block_start();
 
 	llvm::BasicBlock *BB = llvm::BasicBlock::Create(context, "block", func);
+	builder.CreateBr(BB); // jump to new block
 	builder.SetInsertPoint(BB);
 
 	for (auto decl: node.variable_declarations) {
@@ -335,6 +367,11 @@ void CodeGenerator::visit(MethodDeclarationAST& node) {
 	}
 	
 	node.body->accept(*this);
+
+	if (node.return_type == ValueType::VOID) {
+		// create a return at the end of void function, to avoid IR error
+		builder.CreateRetVoid();
+	}
 
 	symbol_table.block_end();
 	
