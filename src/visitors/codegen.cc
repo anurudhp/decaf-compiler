@@ -110,11 +110,11 @@ void CodeGenerator::visit(LiteralAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 void CodeGenerator::visit(IntegerLiteralAST& node) {
-	llvm::Value* value = llvm::ConstantInt::get(context, llvm::APInt(32, 0));
+	llvm::Value* value = llvm::ConstantInt::get(context, llvm::APInt(32, node.value));
 	return_stack.push(value);
 }
 void CodeGenerator::visit(BooleanLiteralAST& node) {
-	llvm::Value* value =  llvm::ConstantInt::get(context, llvm::APInt(1, 0));
+	llvm::Value* value =  llvm::ConstantInt::get(context, llvm::APInt(1, node.value));
 	return_stack.push(value);
 }
 void CodeGenerator::visit(StringLiteralAST& node) {
@@ -126,13 +126,13 @@ void CodeGenerator::visit(LocationAST& node) {
 	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 void CodeGenerator::visit(VariableLocationAST& node) {
-	llvm::Value *var = nullptr;
-	if (symbol_table.is_global_scope()) {
+	llvm::Value *var = symbol_table.lookup_variable(node.id);
+	if (var == nullptr) {
 		var = module->getNamedGlobal(node.id);
-	} else {
-		var = symbol_table.lookup_variable(node.id);
 	}
-	var = builder.CreateLoad(var, node.id.c_str());
+	if (!node.is_lvalue) {
+		var = builder.CreateLoad(var, node.id.c_str());
+	}
 	return_stack.push(var);
 }
 void CodeGenerator::visit(ArrayLocationAST& node) {
@@ -250,18 +250,18 @@ void CodeGenerator::visit(ForStatementAST& node) {
 }
 void CodeGenerator::visit(AssignStatementAST& node) {
 	llvm::Value *rvalue = get_return(*node.rval);
+	llvm::Value *lvalue = get_return(*node.lloc);
 
 	if (node.op != OperatorType::ASSIGN) {
-		llvm::Value *ivalue = get_return(*node.lloc);
+		llvm::Value *ivalue = builder.CreateLoad(lvalue);
 		if (node.op == OperatorType::ASSIGN_ADD) {
 			rvalue = builder.CreateAdd(ivalue, rvalue, "+=");
 		} else {
 			rvalue = builder.CreateSub(ivalue, rvalue, "-=");
 		}
 	}
-
-	// don't visit node.lloc, we only need the pointer.
-
+	
+	builder.CreateStore(rvalue, lvalue);
 }
 
 // blocks.hh
@@ -279,7 +279,7 @@ void CodeGenerator::visit(StatementBlockAST& node) {
 	}
 
 	for (auto statement: node.statements) {
-		// statement->accept(*this);
+		statement->accept(*this);
 	}
 
 	symbol_table.block_end();
@@ -338,7 +338,6 @@ void CodeGenerator::visit(MethodDeclarationAST& node) {
 
 	symbol_table.block_end();
 	
-
 	llvm::verifyFunction(*func);
 }
 

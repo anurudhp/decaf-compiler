@@ -264,7 +264,7 @@ statement_list : statement_list statement    {
 											}
 			   | %empty { $$ = new std::vector<BaseAST *>(); }
 			   ;
-statement : location assign_op expr ';' { $$ = new AssignStatementAST($2, $1, $3); $$->set_location(@$); }
+statement : location assign_op expr ';' { $1->is_lvalue = true; $$ = new AssignStatementAST($2, $1, $3); $$->set_location(@$); }
 		  | method_call ';' { $$ = $1; }
 		  | IF '(' expr ')' block else_block { $$ = new IfStatementAST($3, $5, $6); $$->set_location(@$); }
 		  | FOR ID ASSIGN expr ',' expr block { $$ = new ForStatementAST($2, $4, $6, $7); $$->set_location(@$); }

@@ -59,7 +59,7 @@ public:
 class AssignStatementAST : public BaseAST {
 	public:
 	AssignStatementAST(OperatorType _op, LocationAST *_lloc, BaseAST *_rval)
-	: op(_op), lloc(_lloc), rval(_rval) {}
+	: op(_op), lloc(_lloc), rval(_rval) { lloc->is_lvalue = true; }
 	virtual ~AssignStatementAST();
 
 	virtual void accept(ASTvisitor& V);
