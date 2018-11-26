@@ -16,6 +16,30 @@
 #include "../ast/program.hh"
 #include "../exceptions.hh"
 
+/*** CodeGenerator::SymbolTable ***/
+void CodeGenerator::SymbolTable::block_start() {
+	variables.emplace_back();
+}
+void CodeGenerator::SymbolTable::block_end() {
+	assert(!variables.empty());
+	variables.pop_back();
+}
+
+void CodeGenerator::SymbolTable::add_variable(std::string id, llvm::AllocaInst *alloca) {
+	 variables.back()[id] = alloca;
+}
+llvm::AllocaInst * CodeGenerator::SymbolTable::lookup_variable(std::string id) {
+	for (auto it = variables.rbegin(); it != variables.rend(); it++) {
+		if (it->count(id) > 0) {
+			return (*it)[id];
+		}
+	}
+	return nullptr;
+}
+bool CodeGenerator::SymbolTable::is_global_scope() {
+	return variables.empty();
+}
+
 /*** CodeGenerator ***/
 CodeGenerator::CodeGenerator(std::string name)
 : builder(context) {
@@ -26,12 +50,28 @@ CodeGenerator::~CodeGenerator() {
 }
 
 void CodeGenerator::generate(BaseAST& root) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	root.accept(*this);
 }
 
-void CodeGenerator::print(std::ostream& out) {
+void CodeGenerator::print(const std::string& outf) {
+	// std::error_code EC;
+	// llvm::raw_fd_ostream out(outf, EC);
+	// if (EC) {
+	// 	std::cerr << "Error writing to file " << outf << "\n";
+	//  return;
+	// }
+
 	module->print(llvm::errs(), nullptr);
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+}
+
+llvm::Value* CodeGenerator::get_return_stack_top(bool pop) {
+	llvm::Value *res = return_stack.top();
+	if (pop) return_stack.pop();
+	return res;
+}
+llvm::Value* CodeGenerator::get_return(BaseAST& node) {
+	node.accept(*this);
+	return get_return_stack_top();
 }
 
 void CodeGenerator::error(const std::string& fmt, ...) {
@@ -46,20 +86,36 @@ void CodeGenerator::error(const std::string& fmt, ...) {
 	std::cerr << err << '\n';
 }
 
-// visits:
+// creates an alloca for a single variable
+llvm::AllocaInst *CodeGenerator::CreateBlockAlloca(VariableDeclarationAST *var) {
+	llvm::Type *type;
+	if (var->type == ValueType::INT) {
+		type = llvm::Type::getInt32Ty(context);
+	} else if (var->type == ValueType::BOOL) {
+		type = llvm::Type::getInt1Ty(context);
+	} else {
+		return nullptr;
+	}
+
+	return builder.CreateAlloca(type, 0, var->id);
+}
+
+/*** visits: ***/
 void CodeGenerator::visit(BaseAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
 }
 
 // literals.hh
 void CodeGenerator::visit(LiteralAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 void CodeGenerator::visit(IntegerLiteralAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value* value = llvm::ConstantInt::get(context, llvm::APInt(32, 0));
+	return_stack.push(value);
 }
 void CodeGenerator::visit(BooleanLiteralAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value* value =  llvm::ConstantInt::get(context, llvm::APInt(1, 0));
+	return_stack.push(value);
 }
 void CodeGenerator::visit(StringLiteralAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
@@ -67,39 +123,113 @@ void CodeGenerator::visit(StringLiteralAST& node) {
 
 // variables.hh
 void CodeGenerator::visit(LocationAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 void CodeGenerator::visit(VariableLocationAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *var = nullptr;
+	if (symbol_table.is_global_scope()) {
+		var = module->getNamedGlobal(node.id);
+	} else {
+		var = symbol_table.lookup_variable(node.id);
+	}
+	var = builder.CreateLoad(var, node.id.c_str());
+	return_stack.push(var);
 }
 void CodeGenerator::visit(ArrayLocationAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
 }
 
+void CodeGenerator::visit(VariableDeclarationAST& node) {
+	throw unimplemented_error(__PRETTY_FUNCTION__);
+}
+void CodeGenerator::visit(ArrayDeclarationAST& node) {
+	throw unimplemented_error(__PRETTY_FUNCTION__);
+}
+
 // operators.hh
 void CodeGenerator::visit(UnaryOperatorAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 void CodeGenerator::visit(BinaryOperatorAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
+
 void CodeGenerator::visit(ArithBinOperatorAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *lvalue = get_return(*node.lval);
+	llvm::Value *rvalue = get_return(*node.rval);
+	
+	llvm::Value *value;
+	if (node.op == OperatorType::ADD) {
+		value = builder.CreateAdd(lvalue, rvalue, "Add");
+	} else if (node.op == OperatorType::SUB) {
+		value = builder.CreateSub(lvalue, rvalue, "Sub");
+	} else if (node.op == OperatorType::MUL) {
+		value = builder.CreateMul(lvalue, rvalue, "Mul");
+	} else if (node.op == OperatorType::DIV) {
+		value = builder.CreateSDiv(lvalue, rvalue, "Div");
+	} else if (node.op == OperatorType::MOD) {
+		value = builder.CreateSRem(lvalue, rvalue, "Mod");
+	}
+
+	return_stack.push(value);
 }
+
 void CodeGenerator::visit(CondBinOperatorAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *lvalue = get_return(*node.lval);
+	llvm::Value *rvalue = get_return(*node.rval);
+	
+	llvm::Value *value;
+	if (node.op == OperatorType::AND) {
+		value = builder.CreateAnd(lvalue, rvalue, "And");
+	} else if (node.op == OperatorType::OR) {
+		value = builder.CreateOr(lvalue, rvalue, "Or");
+	}
+	
+	return_stack.push(value);
 }
+
 void CodeGenerator::visit(RelBinOperatorAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *lvalue = get_return(*node.lval);
+	llvm::Value *rvalue = get_return(*node.rval);
+	
+	llvm::Value *value;
+	if (node.op == OperatorType::LE) {
+		value = builder.CreateICmpSLE(lvalue, rvalue, "LE");
+	} else if (node.op == OperatorType::LT) {
+		value = builder.CreateICmpSLT(lvalue, rvalue, "LT");
+	} else if (node.op == OperatorType::GE) {
+		value = builder.CreateICmpSGE(lvalue, rvalue, "GE");
+	} else if (node.op == OperatorType::GT) {
+		value = builder.CreateICmpSGT(lvalue, rvalue, "GT");
+	}
+	
+	return_stack.push(value);
 }
+
 void CodeGenerator::visit(EqBinOperatorAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *lvalue = get_return(*node.lval);
+	llvm::Value *rvalue = get_return(*node.rval);
+
+	llvm::Value *value;
+	if (node.op == OperatorType::EQ) {
+		value = builder.CreateICmpEQ(lvalue, rvalue, "EQ");
+	} else if (node.op == OperatorType::NE) {
+		value = builder.CreateICmpNE(lvalue, rvalue, "NE");
+	}
+
+	return_stack.push(value);
 }
+
 void CodeGenerator::visit(UnaryMinusAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *value = get_return(*node.val);
+	value = builder.CreateNeg(value, "UnaryMinus");
+	return_stack.push(value);
 }
+
 void CodeGenerator::visit(UnaryNotAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *value = get_return(*node.val);
+	value = builder.CreateNot(value, "UnaryNot");
+	return_stack.push(value);
 }
 
 // statements.hh
@@ -119,18 +249,99 @@ void CodeGenerator::visit(ForStatementAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
 }
 void CodeGenerator::visit(AssignStatementAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *rvalue = get_return(*node.rval);
+
+	if (node.op != OperatorType::ASSIGN) {
+		llvm::Value *ivalue = get_return(*node.lloc);
+		if (node.op == OperatorType::ASSIGN_ADD) {
+			rvalue = builder.CreateAdd(ivalue, rvalue, "+=");
+		} else {
+			rvalue = builder.CreateSub(ivalue, rvalue, "-=");
+		}
+	}
+
+	// don't visit node.lloc, we only need the pointer.
+
 }
 
 // blocks.hh
 void CodeGenerator::visit(StatementBlockAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Function *func = builder.GetInsertBlock()->getParent();
+
+	symbol_table.block_start();
+
+	llvm::BasicBlock *BB = llvm::BasicBlock::Create(context, "block", func);
+	builder.SetInsertPoint(BB);
+
+	for (auto decl: node.variable_declarations) {
+		llvm::AllocaInst* alloca = CreateBlockAlloca(decl);
+		symbol_table.add_variable(decl->id, alloca);	
+	}
+
+	for (auto statement: node.statements) {
+		// statement->accept(*this);
+	}
+
+	symbol_table.block_end();
 }
 
 // methods.hh
 void CodeGenerator::visit(MethodDeclarationAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	std::vector<llvm::Type *> argument_types;
+	for (auto param: node.parameters) {
+		if (param->type == ValueType::INT) {
+			argument_types.push_back(llvm::Type::getInt32Ty(context));
+		} else if (param->type == ValueType::BOOL) {
+			argument_types.push_back(llvm::Type::getInt1Ty(context));
+		}
+	}
+
+	llvm::Type *return_type;
+	if (node.return_type == ValueType::INT) {
+		return_type = llvm::Type::getInt32Ty(context);
+	} else if (node.return_type == ValueType::BOOL) {
+		return_type = llvm::Type::getInt1Ty(context);
+	} else if (node.return_type == ValueType::VOID) {
+		return_type = llvm::Type::getVoidTy(context);
+	}
+
+	llvm::FunctionType *func_type = llvm::FunctionType::get(return_type, argument_types, false);
+
+	llvm::Function *func = llvm::Function::Create(func_type,
+												  llvm::Function::ExternalLinkage,
+												  node.name,
+												  module);
+
+
+	symbol_table.block_start();
+
+	// generate code for body
+	llvm::BasicBlock *BB = llvm::BasicBlock::Create(context, "entry", func);
+	builder.SetInsertPoint(BB);
+
+	{
+		auto param = node.parameters.begin();
+		for (auto& arg: func->args()) {
+			std::string argname = (*param)->id;
+			arg.setName(argname);
+
+			llvm::AllocaInst* alloca = CreateBlockAlloca(*param);
+			builder.CreateStore(&arg, alloca);
+
+			symbol_table.add_variable(argname, alloca);
+
+			param++;
+		}
+	}
+	
+	node.body->accept(*this);
+
+	symbol_table.block_end();
+	
+
+	llvm::verifyFunction(*func);
 }
+
 void CodeGenerator::visit(MethodCallAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
 }
@@ -140,5 +351,12 @@ void CodeGenerator::visit(CalloutCallAST& node) {
 
 // program.hh
 void CodeGenerator::visit(ProgramAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	// for (auto decl: node.global_variables) {
+	// 	decl->accept(*this);
+	// }
+
+	for (auto method: node.methods) {
+		method->accept(*this);
+	}
+
 }

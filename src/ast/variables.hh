@@ -16,20 +16,21 @@ std::string value_type_to_string(const ValueType& vt);
 
 class LocationAST : public BaseAST {
 public:
-	LocationAST(std::string _id, BaseAST *_index)
-	: id(_id), index_expr(_index) {}
+	LocationAST(std::string _id, BaseAST *_index, bool _is_lvalue)
+	: id(_id), index_expr(_index), is_lvalue(_is_lvalue) {}
 	virtual ~LocationAST();
 
 	virtual void accept(ASTvisitor& V);
 
 	std::string id;
 	BaseAST *index_expr;
+	bool is_lvalue;
 };
 
 class VariableLocationAST : public LocationAST {
 public:
-	VariableLocationAST(std::string id)
-	: LocationAST(id, NULL) {}
+	VariableLocationAST(std::string id, bool is_lvalue = false)
+	: LocationAST(id, NULL, is_lvalue) {}
 	virtual ~VariableLocationAST() = default;
 
 	virtual void accept(ASTvisitor& V);
@@ -37,8 +38,8 @@ public:
 
 class ArrayLocationAST : public LocationAST {
 public:
-	ArrayLocationAST(std::string id, BaseAST *index)
-	: LocationAST(id, index) {}
+	ArrayLocationAST(std::string id, BaseAST *index, bool is_lvalue = false)
+	: LocationAST(id, index, is_lvalue) {}
 	virtual ~ArrayLocationAST() = default;
 
 	virtual void accept(ASTvisitor& V);

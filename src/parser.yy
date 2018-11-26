@@ -419,8 +419,7 @@ int main(int argc, char **argv) {
 	IR_gen->generate(*(driver.root));
 
 	std::string out_filename = filename.substr(0, filename.size() - 4) + ".ll";
-	std::ofstream llout(out_filename);
-	IR_gen->print(llout);
+	IR_gen->print(out_filename);
 
 	// cleanup
 	delete driver.root;

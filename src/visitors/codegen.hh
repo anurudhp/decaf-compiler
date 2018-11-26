@@ -18,21 +18,32 @@ public:
 	virtual ~CodeGenerator();
 
 	void generate(BaseAST& root);
-	void print(std::ostream& out);
+	void print(const std::string& outf);
 
 private:
 	// LLVM objects
 	llvm::LLVMContext context;
 	llvm::Module *module;
 	llvm::IRBuilder<> builder;
-	std::map<std::string, llvm::Value *> named_values;
 
-	// stack for return values
-	union stack_type {
-		llvm::Value *value;
-		llvm::Function *function;
-	};
-	std::stack<stack_type> return_stack;
+	// symbol table
+	class SymbolTable {
+		std::vector<std::map<std::string, llvm::AllocaInst*>> variables;
+
+	public:
+		void block_start();
+		void block_end();
+		void add_variable(std::string id, llvm::AllocaInst *alloca);
+		llvm::AllocaInst *lookup_variable(std::string id);
+
+		bool is_global_scope();
+	} symbol_table;
+
+	std::stack<llvm::Value *> return_stack;
+	llvm::Value* get_return_stack_top(bool pop = true);
+	llvm::Value* get_return(BaseAST& node);
+
+	llvm::AllocaInst *CreateBlockAlloca(VariableDeclarationAST *var);
 
 	void error(const std::string& fmt, ...);
 
@@ -50,6 +61,8 @@ public:
 	virtual void visit(LocationAST& node);
 	virtual void visit(VariableLocationAST& node);
 	virtual void visit(ArrayLocationAST& node);
+	virtual void visit(VariableDeclarationAST& node);
+	virtual void visit(ArrayDeclarationAST& node);
 
 	// operators.hh
 	virtual void visit(UnaryOperatorAST& node);

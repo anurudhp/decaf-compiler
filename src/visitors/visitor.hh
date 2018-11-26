@@ -21,6 +21,8 @@ public:
 	virtual void visit(LocationAST& node) = 0;
 	virtual void visit(VariableLocationAST& node) = 0;
 	virtual void visit(ArrayLocationAST& node) = 0;
+	virtual void visit(VariableDeclarationAST& node) = 0;
+	virtual void visit(ArrayDeclarationAST& node) = 0;
 
 	// operators.hh
 	virtual void visit(UnaryOperatorAST& node) = 0;
