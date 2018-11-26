@@ -1,36 +1,6 @@
 class Program {
 	int A[100];
 
-	int read_int() {
-		int value, sign;
-		value = 0;
-		sign = 1;
-		for i = 0 , 100 {
-			int curr;
-			curr = callout("getchar");
-			if (curr == 45 && i == 0) {
-				sign = -1;
-				continue;
-			}
-			if (curr < 48) {
-				break;
-			}
-			value = 10 * value + (curr - 48);
-		}
-		return sign * value;
-	}
-
-	void write_int(int n) {
-		callout("printf", "%d", n);
-	}
-	void write_char(int n) {
-		callout("printf", "%c", n);
-	}
-
-	void ignore() {
-		callout("getchar");
-	}
-
 	int bubble_sort(int n) {
 		int temp;
 		for i = 0 , n {
@@ -46,15 +16,15 @@ class Program {
 
 	void main() {
 		int n, s;
-		n = read_int();
+		n = callout("read_int");
 		for i = 0 , n {
-			A[i] = read_int();
+			A[i] = callout("read_int");
 		}
 		bubble_sort(n);
 		for i = 0 , n {
-			write_int(A[i]);
-			write_char(32); // SPACE
+			callout("write_int", A[i]);
+			callout("write_char", 32); // SPACE
 		}
-		write_char(10); // LF
+		callout("write_char", 10); // LF
 	}
 }
