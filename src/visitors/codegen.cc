@@ -332,11 +332,11 @@ void CodeGenerator::visit(IfStatementAST& node) {
 }
 
 void CodeGenerator::visit(BreakStatementAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	builder.CreateBr(for_jump_blocks.top().second);
 }
 
 void CodeGenerator::visit(ContinueStatementAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	builder.CreateBr(for_jump_blocks.top().first);
 }
 
 void CodeGenerator::visit(ForStatementAST& node) {
@@ -348,8 +348,9 @@ void CodeGenerator::visit(ForStatementAST& node) {
 	llvm::BasicBlock *preBB = llvm::BasicBlock::Create(context, "for-init", func);
 	llvm::BasicBlock *condBB = llvm::BasicBlock::Create(context, "for-cond", func);
 	llvm::BasicBlock *midBB = llvm::BasicBlock::Create(context, "for-temp", func);
+	llvm::BasicBlock *incrBB = llvm::BasicBlock::Create(context, "for-incr", func);
 	llvm::BasicBlock *afterBB = llvm::BasicBlock::Create(context, "for-cont", func);
-	
+
 	builder.CreateBr(preBB);
 	builder.SetInsertPoint(preBB);
 
@@ -367,20 +368,22 @@ void CodeGenerator::visit(ForStatementAST& node) {
 	builder.SetInsertPoint(condBB);
 	llvm::Value *loop_iter_val = builder.CreateLoad(loop_iter, "iter-curr");
 	llvm::Value *cond = builder.CreateICmpSLT(loop_iter_val, final_val, "for-cond-check");
+	builder.CreateCondBr(cond, midBB, afterBB);
 
 	// loop body
 	builder.SetInsertPoint(midBB);
-	node.block->accept(*this);
-	llvm::BasicBlock *bodyBB = builder.GetInsertBlock();
 
+	for_jump_blocks.emplace(incrBB, afterBB);
+	node.block->accept(*this);
+	for_jump_blocks.pop();
+
+	// jump to increment block
+	builder.CreateBr(incrBB);
+	builder.SetInsertPoint(incrBB);
 	loop_iter_val = builder.CreateLoad(loop_iter, "iter-curr");
 	loop_iter_val = builder.CreateAdd(loop_iter_val, llvm::ConstantInt::get(context, llvm::APInt(32, 1)), "iter-incr");
 	builder.CreateStore(loop_iter_val, loop_iter);
 	builder.CreateBr(condBB); // jump to condition
-
-	// finally, set the jump points, after the condition check
-	builder.SetInsertPoint(condBB);
-	builder.CreateCondBr(cond, bodyBB, afterBB);
 
 	// restore to continuation
 	builder.SetInsertPoint(afterBB);

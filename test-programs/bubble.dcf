@@ -1,7 +1,10 @@
 class Program {
 	int A[100];
 
-	void write(int x) {
+	void write(int x, int y) {
+		for i = 0, y {
+			callout("write_char", 62); // >
+		}
 		callout("write_int", x);
 		callout("write_char", 10);
 	}
@@ -9,16 +12,22 @@ class Program {
 	int bubble_sort(int n) {
 		int temp;
 		
-		write(n);
 		for i = 0 , n {
-			write(i);
+			write(i, 1);
 			for j = 0 , n - i - 1 {
-				write(j);
+				if (j < 2) {
+					break;
+				}
+				write(j, 2);
 				if (A[j] > A[j + 1]) {
+					continue;
 					temp = A[j];
 					A[j] = A[j + 1];
 					A[j + 1] = temp;
 				}
+			}
+			if (i == 1) {
+				break;
 			}
 		}
 	}
