@@ -1,0 +1,102 @@
+class Program {
+	// Segment Tree for point updates and range sum queries
+	// 0-based indexing
+
+	int SIZE;
+	int array[256];
+	int tree[512];
+
+	// bottom-up build
+	void build() {
+		SIZE = 256;
+		for i = 0, SIZE {
+			tree[SIZE + i] = array[i];
+		}
+		for ri = 0, SIZE {
+			int i;
+			i = SIZE - ri - 1;  // iterating in reverse
+			tree[i] = tree[2 * i] + tree[2 * i + 1];
+		}
+	}
+
+	void update(int idx, int val) {
+		int node;
+
+		node = idx + SIZE;
+		tree[node] = val;
+		node = node / 2;
+		for i = 0, 10 {
+			if (node == 0) {
+				break;
+			}
+			tree[node] = tree[2 * node] + tree[2 * node + 1];
+
+			node = node / 2;
+		}
+	}
+
+	int query(int l, int r, int node, int x, int y) {
+		int z;
+
+		if (l < x) { l = x; }
+		if (r > y) { r = y; }
+
+		if (l >= r) { // empty
+			return 0;
+		}
+		if (l == x && r == y) {
+			return tree[node];
+		}
+
+		z = (x + y) / 2;
+		return query(l, r, 2 * node, x, z) + query(l, r, 2 * node + 1, z, y);
+	}
+
+	void main() {
+		int n, q;
+
+		n = callout("read_int"); // array size
+		for i = 0, n {
+			array[i] = callout("read_int");
+		}
+
+		build();
+
+		q = callout("read_int"); // queries
+		for qit = 0, q {
+			int ty;
+			ty = callout("read_char"); // type
+			if (ty == 'u') { // update
+				int i, v;
+
+				i = callout("read_int"); // index
+				v = callout("read_int"); // new value
+
+				update(i, v);
+			} else {
+					if (ty == 's') { // range query
+					int l, r, v;
+
+					l = callout("read_int");
+					r = callout("read_int");
+
+					// sum[l, r)
+					v = query(l, r, 1, 0, SIZE);
+					callout("write_string", "sum = ");
+					callout("write_int", v);
+					callout("write_char", '\n');
+				} else { // (ty == 'e') element
+					int i, v;
+
+					i = callout("read_int");
+
+					// sum[l, r)
+					v = query(i, i + 1, 1, 0, SIZE);
+					callout("write_string", "value = ");
+					callout("write_int", v);
+					callout("write_char", '\n');
+				} 
+			}
+		}
+	}
+}
