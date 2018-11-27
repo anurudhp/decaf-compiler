@@ -129,7 +129,7 @@ void CodeGenerator::error(const std::string& fmt, ...) {
 
 /*** visits: ***/
 void CodeGenerator::visit(BaseAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	throw invalid_call_error(__PRETTY_FUNCTION__);
 }
 
 // literals.hh
