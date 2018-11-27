@@ -10,8 +10,11 @@ CSE419 Compilers (Monsoon 2018)
 
 ### Usage
 - Build decaf: `make clean && make`
-- compiling code: `bin/compile <path/to/code> [clang-opts]`
-	- Sample usage: `bin/compile test-programs/arraysum.dcf -o a.out -O2`
+- generating IR: `bin/decaf <path/to/code.dcf> [--output=<path/to/output>]`
+	- If no output file is specified, writes to stdout
+- compiling code: `bin/compile <path/to/code.dcf> [clang-opts]`
+	- Sample usage: `bin/compile test-programs/arraysum.dcf -o arraysum.out -O2`
+	- Compiles using `clang++`
 
 ### Structure
 - `scanner.hh`: header file for Flex Scanner class
