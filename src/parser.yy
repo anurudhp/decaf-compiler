@@ -336,7 +336,6 @@ callout_arg_list : ',' callout_arg callout_arg_list { ($$ = $3)->push_back($2); 
 callout_arg : arg { $$ = $1; }
 			| STRING_LIT { 
 							std::string lit($1);
-							lit = lit.substr(1, lit.size() - 2);
 							$$ = new StringLiteralAST(lit);
 							$$->set_location(@$); 
 						} 

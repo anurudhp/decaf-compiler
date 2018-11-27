@@ -38,7 +38,9 @@ using token_type = Decaf::Parser::token_type;
 	return token::CHAR_LIT;
 }
 \"(\\n|\\t|\\\'|\\\"|\\\\|[^\\\'\"])*\"	{
-	yylval->sval = strdup(yytext);
+	yylval->sval = strdup(yytext + 1);
+	int len = strlen(yylval->sval);
+	yylval->sval[len - 1] = '\0';
 	return token::STRING_LIT;
 }
 (true|false)  {
