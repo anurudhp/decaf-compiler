@@ -1,5 +1,5 @@
 CXX=g++
-CXX_OPTS=-g -DDEBUG_ENABLED
+CXX_OPTS=-g
 LLVM_OPTS=`llvm-config --cxxflags --ldflags` -fexceptions
 LLVM_LINK_OPTS=`llvm-config --libs --libfiles --system-libs`
 FLEX_OPTS=
@@ -54,7 +54,11 @@ test: parser
 	done;
 
 clean:
+	@cp bin/readme.md bin/.readme.md
+	@cp build/readme.md build/.readme.md
 	@rm -rf bin/* build/*
+	@mv bin/.readme.md bin/readme.md
+	@mv build/.readme.md build/readme.md
 	@rm -f src/lex.yy.cc src/parser.tab.* src/stack.hh src/location.hh src/position.hh src/parser.output 
 
 .PHONY: clean test parser
