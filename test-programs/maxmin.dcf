@@ -19,8 +19,8 @@ class Program {
 			}
 		}
 		callout("write_int", min);
-		callout("write_char", 10);
+		callout("write_char", '\n');
 		callout("write_int", max);
-		callout("write_char", 10);
+		callout("write_char", '\n');
 	}
 }

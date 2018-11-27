@@ -1,0 +1,80 @@
+class Program {
+	int N, M; // nodes, edges
+	int degree[100];
+	int U[300], V[300]; // edges (U[i], V[i])
+	int adj[300], st[100], en[100]; // concatenated adjacency list
+	boolean vis[100];
+
+	void read_graph() {
+		int idx;
+
+		N = callout("read_int");
+		M = callout("read_int");
+		for i = 0, M {
+			U[i] = callout("read_int");
+			degree[U[i]] += 1;
+			V[i] = callout("read_int");
+			degree[V[i]] += 1;
+		}
+
+		// compute ranges to store the adjacency lists
+		idx = 0;
+		for u = 0, N {
+			st[u] = idx;
+			en[u] = degree[u] + idx;
+			degree[u] = 0;
+			idx = en[u];
+		}
+
+		// store the lists
+		for i = 0, M {
+			adj[st[U[i]] + degree[U[i]]] = V[i];
+			degree[U[i]] += 1;
+
+			adj[st[V[i]] + degree[V[i]]] = U[i];
+			degree[V[i]] += 1;
+		}
+
+	}
+
+	void print_graph() {
+		int idx;
+
+		callout("write_string", "Adjacency Lists:\n");
+		for u = 0, N {
+			callout("write_int", u);
+			callout("write_string", ": ");
+			for i = st[u], en[u] {
+				if (i != st[u]) {
+					callout("write_string", ", ");
+				}
+				callout("write_int", adj[i]);
+			}
+			callout("write_string", "\n");
+		}
+	}
+
+	void dfs(int u) {
+		if (vis[u]) {
+			return;
+		}
+		vis[u] = true;
+		callout("write_string", "> enter: ");
+		callout("write_int", u);
+		callout("write_string", "\n");
+
+		for i = st[u], en[u] {
+			dfs(adj[i]);
+		}
+
+		callout("write_string", "< exit: ");
+		callout("write_int", u);
+		callout("write_string", "\n");
+	}
+
+	void main() {
+		read_graph();
+		print_graph();
+		dfs(0);
+	}
+}

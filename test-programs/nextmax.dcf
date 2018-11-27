@@ -26,6 +26,6 @@ class Program {
 			}
 		}
 		callout("write_int", max2);
-		callout("write_char", 10);
+		callout("write_char", '\n');
 	}
 }

@@ -4,5 +4,6 @@ class Program {
 		n = callout("read_int");
 		s = (n * (n + 1)) / 2;
 		callout("write_int", s);
+		callout("write_char", '\n');
 	}
 }

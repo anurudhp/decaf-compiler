@@ -9,7 +9,8 @@ src/location.hh
 src/position.hh
 *.ll
 **/*.ll
-
+*.out
+*.o
 #npm
 node_modules
 package.json
