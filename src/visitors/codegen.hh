@@ -9,6 +9,7 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/Support/TargetSelect.h>
 
 #include "visitor.hh"
 
@@ -43,7 +44,8 @@ private:
 	llvm::Value* get_return_stack_top(bool pop = true);
 	llvm::Value* get_return(BaseAST& node);
 
-	llvm::AllocaInst *CreateBlockAlloca(VariableDeclarationAST *var);
+	llvm::Type* get_type(ValueType ty);
+	void add_builtin(std::string name, std::vector<ValueType> _params, ValueType ret);
 
 	void error(const std::string& fmt, ...);
 

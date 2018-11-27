@@ -49,7 +49,33 @@ CodeGenerator::~CodeGenerator() {
 	delete module;
 }
 
+void CodeGenerator::add_builtin(std::string name, std::vector<ValueType> _params, ValueType ret) {
+	if (module->getFunction(name) != nullptr) return;
+
+	std::vector<llvm::Type *> params;
+	for (auto p: _params) {
+		if (p == ValueType::INT) {
+			params.push_back(llvm::Type::getInt32Ty(context));
+		} else if (p == ValueType::BOOL) {
+			params.push_back(llvm::Type::getInt1Ty(context));
+		}
+	}
+
+	llvm::Type *ret_type;
+	if (ret == ValueType::INT) {
+		ret_type = llvm::Type::getInt32Ty(context);
+	} else if (ret == ValueType::BOOL) {
+		ret_type = llvm::Type::getInt1Ty(context);
+	} else {
+		ret_type = llvm::Type::getVoidTy(context);
+	}
+
+	llvm::FunctionType *ftype = llvm::FunctionType::get(ret_type, params, false);
+	llvm::Function::Create(ftype, llvm::Function::ExternalLinkage, name, module);
+}
+
 void CodeGenerator::generate(BaseAST& root) {
+	/** generate code **/
 	root.accept(*this);
 }
 
@@ -61,10 +87,11 @@ void CodeGenerator::print(const std::string& outf) {
 	//  return;
 	// }
 
-	module->print(llvm::errs(), nullptr);
+	module->print(llvm::outs(), nullptr);
 }
 
 llvm::Value* CodeGenerator::get_return_stack_top(bool pop) {
+	assert(!return_stack.empty());
 	llvm::Value *res = return_stack.top();
 	if (pop) return_stack.pop();
 	return res;
@@ -72,6 +99,20 @@ llvm::Value* CodeGenerator::get_return_stack_top(bool pop) {
 llvm::Value* CodeGenerator::get_return(BaseAST& node) {
 	node.accept(*this);
 	return get_return_stack_top();
+}
+
+llvm::Type* CodeGenerator::get_type(ValueType ty) {
+	if (ty == ValueType::INT) {
+		return llvm::Type::getInt32Ty(context);
+	}
+	if (ty == ValueType::BOOL) {
+		return llvm::Type::getInt1Ty(context);
+	}
+	if (ty == ValueType::VOID) {
+		return llvm::Type::getVoidTy(context);
+	}
+
+	return nullptr;
 }
 
 void CodeGenerator::error(const std::string& fmt, ...) {
@@ -84,20 +125,6 @@ void CodeGenerator::error(const std::string& fmt, ...) {
 	va_end(args);
 
 	std::cerr << err << '\n';
-}
-
-// creates an alloca for a single variable
-llvm::AllocaInst *CodeGenerator::CreateBlockAlloca(VariableDeclarationAST *var) {
-	llvm::Type *type;
-	if (var->type == ValueType::INT) {
-		type = llvm::Type::getInt32Ty(context);
-	} else if (var->type == ValueType::BOOL) {
-		type = llvm::Type::getInt1Ty(context);
-	} else {
-		return nullptr;
-	}
-
-	return builder.CreateAlloca(type, 0, var->id);
 }
 
 /*** visits: ***/
@@ -140,8 +167,15 @@ void CodeGenerator::visit(ArrayLocationAST& node) {
 }
 
 void CodeGenerator::visit(VariableDeclarationAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	if (symbol_table.is_global_scope()) { // global variable
+		throw unimplemented_error(__PRETTY_FUNCTION__);
+	} else { // local/block variable
+		llvm::AllocaInst* alloca = builder.CreateAlloca(get_type(node.type), 0, node.id);
+		symbol_table.add_variable(node.id, alloca);
+		return_stack.push(alloca);
+	}
 }
+
 void CodeGenerator::visit(ArrayDeclarationAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
 }
@@ -306,8 +340,7 @@ void CodeGenerator::visit(StatementBlockAST& node) {
 	builder.SetInsertPoint(BB);
 
 	for (auto decl: node.variable_declarations) {
-		llvm::AllocaInst* alloca = CreateBlockAlloca(decl);
-		symbol_table.add_variable(decl->id, alloca);	
+		(void) get_return(*decl);
 	}
 
 	for (auto statement: node.statements) {
@@ -319,32 +352,19 @@ void CodeGenerator::visit(StatementBlockAST& node) {
 
 // methods.hh
 void CodeGenerator::visit(MethodDeclarationAST& node) {
+	// function proto
 	std::vector<llvm::Type *> argument_types;
 	for (auto param: node.parameters) {
-		if (param->type == ValueType::INT) {
-			argument_types.push_back(llvm::Type::getInt32Ty(context));
-		} else if (param->type == ValueType::BOOL) {
-			argument_types.push_back(llvm::Type::getInt1Ty(context));
-		}
+		argument_types.push_back(get_type(param->type));
 	}
-
-	llvm::Type *return_type;
-	if (node.return_type == ValueType::INT) {
-		return_type = llvm::Type::getInt32Ty(context);
-	} else if (node.return_type == ValueType::BOOL) {
-		return_type = llvm::Type::getInt1Ty(context);
-	} else if (node.return_type == ValueType::VOID) {
-		return_type = llvm::Type::getVoidTy(context);
-	}
-
+	llvm::Type *return_type = get_type(node.return_type);
 	llvm::FunctionType *func_type = llvm::FunctionType::get(return_type, argument_types, false);
-
 	llvm::Function *func = llvm::Function::Create(func_type,
 												  llvm::Function::ExternalLinkage,
 												  node.name,
 												  module);
 
-
+	// function body
 	symbol_table.block_start();
 
 	// generate code for body
@@ -352,17 +372,15 @@ void CodeGenerator::visit(MethodDeclarationAST& node) {
 	builder.SetInsertPoint(BB);
 
 	{
-		auto param = node.parameters.begin();
+		auto iter = node.parameters.begin();
 		for (auto& arg: func->args()) {
-			std::string argname = (*param)->id;
-			arg.setName(argname);
+			auto param = *iter;
 
-			llvm::AllocaInst* alloca = CreateBlockAlloca(*param);
+			arg.setName(param->id);
+			llvm::Value* alloca = get_return(*param);
 			builder.CreateStore(&arg, alloca);
 
-			symbol_table.add_variable(argname, alloca);
-
-			param++;
+			iter++;
 		}
 	}
 	
@@ -371,6 +389,13 @@ void CodeGenerator::visit(MethodDeclarationAST& node) {
 	if (node.return_type == ValueType::VOID) {
 		// create a return at the end of void function, to avoid IR error
 		builder.CreateRetVoid();
+	} else if (node.return_type == ValueType::INT) {
+		// return 0 on reaching end (default)
+		// TODO: check for missing return in semantic analysis
+		builder.CreateRet(llvm::ConstantInt::get(context, llvm::APInt(32, 0)));
+	} else if (node.return_type == ValueType::BOOL) {
+		// return false on reaching end (default)
+		builder.CreateRet(llvm::ConstantInt::get(context, llvm::APInt(1, 0)));
 	}
 
 	symbol_table.block_end();
@@ -379,17 +404,31 @@ void CodeGenerator::visit(MethodDeclarationAST& node) {
 }
 
 void CodeGenerator::visit(MethodCallAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	std::vector<llvm::Value *> args;
+	for (auto arg: node.arguments) {
+		args.push_back(get_return(*arg));
+	}
+	llvm::Function *func = module->getFunction(node.id);
+
+	if (func->getReturnType() == llvm::Type::getVoidTy(context)) { // void function
+		builder.CreateCall(func, args);
+	} else {
+		auto ret = builder.CreateCall(func, args, "fcall");
+		return_stack.push(ret);
+	}
 }
+
 void CodeGenerator::visit(CalloutCallAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	add_builtin(node.id, node.arg_types, ValueType::INT);
+	MethodCallAST *p = dynamic_cast<MethodCallAST *>(&node);
+	visit(*p);
 }
 
 // program.hh
 void CodeGenerator::visit(ProgramAST& node) {
-	// for (auto decl: node.global_variables) {
-	// 	decl->accept(*this);
-	// }
+	for (auto decl: node.global_variables) {
+		decl->accept(*this);
+	}
 
 	for (auto method: node.methods) {
 		method->accept(*this);

@@ -42,8 +42,10 @@ public:
 class CalloutCallAST : public MethodCallAST {
 public:
 	CalloutCallAST(std::string _id, std::vector<BaseAST *> args)
-	: MethodCallAST(_id, args) {}
+	: MethodCallAST(_id, args), arg_types(0) {}
 	virtual ~CalloutCallAST() = default;
 	
 	virtual void accept(ASTvisitor& V);
+
+	std::vector<ValueType> arg_types;
 };

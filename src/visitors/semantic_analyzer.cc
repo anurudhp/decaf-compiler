@@ -572,13 +572,15 @@ void SemanticAnalyzer::visit(CalloutCallAST& node) {
 	for (auto arg: node.arguments) {
 		arg->accept(*this);
 		ValueType expr = get_top_type();
-		if (expr != ValueType::NONE) continue;
+		if (expr == ValueType::NONE) continue;
 		
 		if (expr != ValueType::INT && expr != ValueType::BOOL && expr != ValueType::STRING) {
 			log_error(5, arg->location,
 					  "Invalid callout argument type `%s`",
 					  value_type_to_string(expr).c_str());
 		}
+
+		node.arg_types.push_back(expr);
 	}
 	type_stack.push(ValueType::INT);
 }

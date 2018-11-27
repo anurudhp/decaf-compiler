@@ -38,7 +38,7 @@ build/lex.o: src/lex.yy.cc src/parser.tab.cc
 build/parser.o: src/parser.tab.cc
 	$(CXX) -c -o $@ $< $(CXX_OPTS) $(LLVM_OPTS)
 
-build/builtins.o:
+build/builtins.o: src/builtins/*.cc
 	$(CXX) -c -o $@ src/builtins/*.cc $(CXX_OPTS) $(LLVM_OPTS)
 
 bin/decaf: $(OBJS) build/builtins.o
