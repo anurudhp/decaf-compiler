@@ -54,22 +54,9 @@ void CodeGenerator::add_builtin(std::string name, std::vector<ValueType> _params
 
 	std::vector<llvm::Type *> params;
 	for (auto p: _params) {
-		if (p == ValueType::INT) {
-			params.push_back(llvm::Type::getInt32Ty(context));
-		} else if (p == ValueType::BOOL) {
-			params.push_back(llvm::Type::getInt1Ty(context));
-		}
+		params.push_back(get_llvm_type(p));
 	}
-
-	llvm::Type *ret_type;
-	if (ret == ValueType::INT) {
-		ret_type = llvm::Type::getInt32Ty(context);
-	} else if (ret == ValueType::BOOL) {
-		ret_type = llvm::Type::getInt1Ty(context);
-	} else {
-		ret_type = llvm::Type::getVoidTy(context);
-	}
-
+	llvm::Type *ret_type = get_llvm_type(ret);
 	llvm::FunctionType *ftype = llvm::FunctionType::get(ret_type, params, false);
 	llvm::Function::Create(ftype, llvm::Function::ExternalLinkage, name, module);
 }
@@ -79,13 +66,14 @@ void CodeGenerator::generate(BaseAST& root) {
 	root.accept(*this);
 }
 
-void CodeGenerator::print(const std::string& outf) {
+void CodeGenerator::print(std::string outf) {
 	// std::error_code EC;
-	// llvm::raw_fd_ostream out(outf, EC);
+	// llvm::raw_fd_ostream out(outf, EC, llvm::sys::fs::F_None);
 	// if (EC) {
 	// 	std::cerr << "Error writing to file " << outf << "\n";
-	//  return;
+	// 	return;
 	// }
+	// module->print(out, nullptr);
 
 	module->print(llvm::outs(), nullptr);
 }
@@ -110,6 +98,9 @@ llvm::Type* CodeGenerator::get_llvm_type(ValueType ty) {
 	}
 	if (ty == ValueType::VOID) {
 		return llvm::Type::getVoidTy(context);
+	}
+	if (ty == ValueType::STRING) {
+		return llvm::Type::getInt8PtrTy(context);
 	}
 
 	return nullptr;

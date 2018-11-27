@@ -19,7 +19,7 @@ public:
 	virtual ~CodeGenerator();
 
 	void generate(BaseAST& root);
-	void print(const std::string& outf);
+	void print(std::string outf);
 
 private:
 	// LLVM objects

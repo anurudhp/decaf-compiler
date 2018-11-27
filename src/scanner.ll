@@ -11,6 +11,30 @@ using token_type = Decaf::Parser::token_type;
 
 #define YY_USER_ACTION yylloc->columns(yyleng);
 
+void beautify_string(char *s) {
+	int len = strlen(s);
+	int j = 0;
+	for (int i = 0; i < len; i++, j++) {
+		if (s[i] == '\\') { // escape sequence
+			if (s[i + 1] == 'n') {
+				s[j] = '\n';
+			} else if (s[i + 1] == 't') {
+				s[j] = '\t';
+			} else if (s[i + 1] == '\\') {
+				s[j] = '\\';
+			} else if (s[i + 1] == '\'') {
+				s[j] = '\'';
+			} else if (s[i + 1] == '\"') {
+				s[j] = '\"';
+			}
+			i++;
+		} else {
+			s[j] = s[i];
+		}
+	}
+	s[j] = '\0';
+}
+
 %}
 
 %option c++
@@ -55,6 +79,7 @@ using token_type = Decaf::Parser::token_type;
 	yylval->sval = strdup(yytext + 1);
 	int len = strlen(yylval->sval);
 	yylval->sval[len - 1] = '\0';
+	beautify_string(yylval->sval);
 	return token::STRING_LIT;
 }
 (true|false)  {
