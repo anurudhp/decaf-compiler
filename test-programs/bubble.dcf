@@ -1,33 +1,21 @@
 class Program {
 	int A[100];
 
-	void write(int x, int y) {
-		for i = 0, y {
-			callout("write_char", 62); // >
-		}
+	void write(int x) {
 		callout("write_int", x);
-		callout("write_char", 10);
+		callout("write_char", ' ');
 	}
 
 	int bubble_sort(int n) {
 		int temp;
 		
 		for i = 0 , n {
-			write(i, 1);
 			for j = 0 , n - i - 1 {
-				if (j < 2) {
-					break;
-				}
-				write(j, 2);
 				if (A[j] > A[j + 1]) {
-					continue;
 					temp = A[j];
 					A[j] = A[j + 1];
 					A[j + 1] = temp;
 				}
-			}
-			if (i == 1) {
-				break;
 			}
 		}
 	}
@@ -40,9 +28,8 @@ class Program {
 		}
 		bubble_sort(n);
 		for i = 0 , n {
-			callout("write_int", A[i]);
-			callout("write_char", 32); // SPACE
+			write(A[i]);
 		}
-		callout("write_char", 10); // LF
+		callout("write_char", '\n');
 	}
 }

@@ -33,8 +33,22 @@ using token_type = Decaf::Parser::token_type;
 	yylval->ival = strtol(yytext, NULL, 16);
 	return token::INT_LIT;
 }
-\'.\' {
-	yylval->ival = *yytext;
+\'(\\n|\\t|\\\'|\\\"|\\\\|[^\\\'\"])\' {
+	if (yytext[1] == '\\') {
+		if (yytext[2] == 'n') {
+			yylval->ival = '\n';
+		} else if (yytext[2] == 't') {
+			yylval->ival = '\t';
+		} else if (yytext[2] == '\\') {
+			yylval->ival = '\\';
+		} else if (yytext[2] == '\'') {
+			yylval->ival = '\'';
+		} else if (yytext[2] == '\"') {
+			yylval->ival = '\"';
+		}
+	} else {
+		yylval->ival = yytext[1];
+	}
 	return token::CHAR_LIT;
 }
 \"(\\n|\\t|\\\'|\\\"|\\\\|[^\\\'\"])*\"	{
