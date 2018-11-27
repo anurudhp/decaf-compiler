@@ -10,25 +10,25 @@ extern "C" {
 
 	// write_int: prints one integer to stdout
 	int write_int(int val) {
-		std::cout << val;
+		std::cerr << val;
 		return 0;
 	}
 
 	// write_bool: prints one boolean value to stdout
 	int write_bool(bool val) {
-		std::cout << std::boolalpha << val << std::noboolalpha;
+		std::cerr << std::boolalpha << val << std::noboolalpha;
 		return 0;
 	}
 
 	// write_char: prints one character to stdout
 	int write_char(char val) {
-		std::cout << val;
+		std::cerr << val;
 		return 0;
 	}
 
 	// write_string: prints a string literal to stdout
 	int write_string(const char* val) {
-		std::cout << val;
+		std::cerr << val;
 		return 0;
 	}
 }

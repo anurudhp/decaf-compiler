@@ -311,29 +311,24 @@ void CodeGenerator::visit(IfStatementAST& node) {
 
 	llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(context, "then", func);
 	llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(context, "else", func);
-	llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(context, "ifcont");
+	llvm::BasicBlock *afterBB = llvm::BasicBlock::Create(context, "if-cont", func);
 
 	builder.CreateCondBr(cond, thenBB, elseBB);
 
 	// then block
 	builder.SetInsertPoint(thenBB);
 	node.then_block->accept(*this);
-
-	builder.CreateBr(mergeBB);
-	thenBB = builder.GetInsertBlock();
+	builder.CreateBr(afterBB);
 
 	// else block
 	builder.SetInsertPoint(elseBB);
 	if (node.else_block) {
 		node.else_block->accept(*this);
 	}
-
-	builder.CreateBr(mergeBB);
-	elseBB = builder.GetInsertBlock();
+	builder.CreateBr(afterBB);
 
 	// continuation
-	func->getBasicBlockList().push_back(mergeBB);
-	builder.SetInsertPoint(mergeBB);
+	builder.SetInsertPoint(afterBB);
 }
 
 void CodeGenerator::visit(BreakStatementAST& node) {
@@ -345,7 +340,52 @@ void CodeGenerator::visit(ContinueStatementAST& node) {
 }
 
 void CodeGenerator::visit(ForStatementAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Function *func = builder.GetInsertBlock()->getParent();
+
+	symbol_table.block_start(); // for scope (contains iterator)
+	
+	// pre-block: computes range, and initializes iterator
+	llvm::BasicBlock *preBB = llvm::BasicBlock::Create(context, "for-init", func);
+	llvm::BasicBlock *condBB = llvm::BasicBlock::Create(context, "for-cond", func);
+	llvm::BasicBlock *midBB = llvm::BasicBlock::Create(context, "for-temp", func);
+	llvm::BasicBlock *afterBB = llvm::BasicBlock::Create(context, "for-cont", func);
+	
+	builder.CreateBr(preBB);
+	builder.SetInsertPoint(preBB);
+
+	// loop iterator
+	VariableDeclarationAST loop_iter_ast(node.iterator_id, ValueType::INT);
+	// const to prevent modifications to iterator ptr
+	llvm::Value * const loop_iter = get_return(loop_iter_ast); 
+ 
+	llvm::Value * const init_val = get_return(*node.start_expr);
+	llvm::Value * const final_val = get_return(*node.end_expr);
+	builder.CreateStore(init_val, loop_iter);
+
+	// condition check
+	builder.CreateBr(condBB);
+	builder.SetInsertPoint(condBB);
+	llvm::Value *loop_iter_val = builder.CreateLoad(loop_iter, "iter-curr");
+	llvm::Value *cond = builder.CreateICmpSLT(loop_iter_val, final_val, "for-cond-check");
+
+	// loop body
+	builder.SetInsertPoint(midBB);
+	node.block->accept(*this);
+	llvm::BasicBlock *bodyBB = builder.GetInsertBlock();
+
+	loop_iter_val = builder.CreateLoad(loop_iter, "iter-curr");
+	loop_iter_val = builder.CreateAdd(loop_iter_val, llvm::ConstantInt::get(context, llvm::APInt(32, 1)), "iter-incr");
+	builder.CreateStore(loop_iter_val, loop_iter);
+	builder.CreateBr(condBB); // jump to condition
+
+	// finally, set the jump points, after the condition check
+	builder.SetInsertPoint(condBB);
+	builder.CreateCondBr(cond, bodyBB, afterBB);
+
+	// restore to continuation
+	builder.SetInsertPoint(afterBB);
+
+	symbol_table.block_end(); // end for scope
 }
 
 void CodeGenerator::visit(AssignStatementAST& node) {

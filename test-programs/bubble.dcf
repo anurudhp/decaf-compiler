@@ -1,10 +1,19 @@
 class Program {
 	int A[100];
 
+	void write(int x) {
+		callout("write_int", x);
+		callout("write_char", 10);
+	}
+
 	int bubble_sort(int n) {
 		int temp;
+		
+		write(n);
 		for i = 0 , n {
+			write(i);
 			for j = 0 , n - i - 1 {
+				write(j);
 				if (A[j] > A[j + 1]) {
 					temp = A[j];
 					A[j] = A[j + 1];
