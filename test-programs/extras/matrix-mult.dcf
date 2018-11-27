@@ -1,0 +1,36 @@
+class Program {
+	int N; // matrix size: N * N
+	int A[100], B[100], C[100];
+
+	void main() {
+		N = callout("read_int");
+
+		for i = 0, N {
+			for j = 0, N {
+				A[N * i + j] = callout("read_int");
+			}
+		}
+		for i = 0, N {
+			for j = 0, N {
+				B[N * i + j] = callout("read_int");
+			}
+		}
+
+		for i = 0, N {
+			for j = 0, N {
+				for k = 0, N {
+					C[N * i + j] += A[N * i + k] * B[N * k + j];
+				}
+			}
+		}
+
+		callout("write_char", '\n');
+		for i = 0, N {
+			for j = 0, N {
+				callout("write_int", C[N * i + j]);
+				callout("write_char", ' ');
+			}
+			callout("write_char", '\n');
+		}
+	}
+}
