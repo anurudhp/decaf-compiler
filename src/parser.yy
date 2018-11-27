@@ -361,17 +361,27 @@ literal : INT_LIT { $$ = new IntegerLiteralAST($1); $$->set_location(@$); }
 %%
 
 void show_help(bool quit = true) {
-	std::cerr << "Usage: decaf <file>.dcf\n";
+	std::cerr << "Usage: decaf <file>.dcf [--output=<output-file>]\n";
 	if (quit) exit(1);
 }
 
 int main(int argc, char **argv) {
-	if (argc != 2) show_help();
+	if (argc < 2) show_help();
 
 	// open input file as stream
 	std::string filename(argv[1]);
-	if (filename.size() < 4 || filename.substr(filename.size() - 4, 4) != ".dcf")
+	if (filename.size() < 4 
+		|| filename.substr(filename.size() - 4, 4) != ".dcf")
 		show_help();
+
+	std::string out_filename = "";
+	if (argc >= 3) {
+		out_filename = std::string(argv[2]);
+		if (out_filename.size() < 9 || out_filename.substr(0, 9) != "--output=") {
+			show_help();
+		}
+		out_filename = out_filename.substr(9, out_filename.size() - 9);
+	}
 
 	std::ifstream fin(filename);
 	if (!fin.good()) {
@@ -414,10 +424,7 @@ int main(int argc, char **argv) {
 
 	// code generation (LLVM IR)
 	CodeGenerator *IR_gen = new CodeGenerator(filename);
-
-	IR_gen->generate(*(driver.root));
-
-	std::string out_filename = filename.substr(0, filename.size() - 4) + ".ll";
+	IR_gen->generate(*(driver.root));	
 	IR_gen->print(out_filename);
 
 	// cleanup

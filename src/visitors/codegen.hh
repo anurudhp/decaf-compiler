@@ -10,6 +10,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/FileSystem.h>
 
 #include "visitor.hh"
 
@@ -26,16 +27,21 @@ private:
 	llvm::LLVMContext context;
 	llvm::Module *module;
 	llvm::IRBuilder<> builder;
+	bool has_error;
 
 	// symbol table
 	class SymbolTable {
 		std::vector<std::map<std::string, llvm::AllocaInst*>> variables;
+		std::map<std::string, int> array_lengths;
 
 	public:
 		void block_start();
 		void block_end();
 		void add_variable(std::string id, llvm::AllocaInst *alloca);
 		llvm::AllocaInst *lookup_variable(std::string id);
+
+		void add_array(std::string id, int length);
+		int get_array_len(std::string id);
 
 		bool is_global_scope();
 	} symbol_table;
@@ -50,6 +56,7 @@ private:
 	llvm::Type* get_llvm_type(ValueType ty);
 	void add_builtin(std::string name, std::vector<ValueType> _params, ValueType ret);
 
+	void add_runtime_error_inst(int ec, std::string err);
 	void error(const std::string& fmt, ...);
 
 public:

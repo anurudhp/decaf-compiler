@@ -36,6 +36,14 @@ llvm::AllocaInst * CodeGenerator::SymbolTable::lookup_variable(std::string id) {
 	}
 	return nullptr;
 }
+
+void CodeGenerator::SymbolTable::add_array(std::string id, int length) {
+	array_lengths[id] = length;
+}
+int CodeGenerator::SymbolTable::get_array_len(std::string id) {
+	return array_lengths[id];
+}
+
 bool CodeGenerator::SymbolTable::is_global_scope() {
 	return variables.empty();
 }
@@ -44,13 +52,14 @@ bool CodeGenerator::SymbolTable::is_global_scope() {
 CodeGenerator::CodeGenerator(std::string name)
 : builder(context) {
 	module = new llvm::Module(name, context);
+	has_error = false;
 }
 CodeGenerator::~CodeGenerator() {
 	delete module;
 }
 
 void CodeGenerator::add_builtin(std::string name, std::vector<ValueType> _params, ValueType ret) {
-	if (module->getFunction(name) != nullptr) return;
+	// if (module->getFunction(name) != nullptr) return;
 
 	std::vector<llvm::Type *> params;
 	for (auto p: _params) {
@@ -62,20 +71,26 @@ void CodeGenerator::add_builtin(std::string name, std::vector<ValueType> _params
 }
 
 void CodeGenerator::generate(BaseAST& root) {
+	// add decl for exit, write_string
+	add_builtin("exit", std::vector<ValueType>(1, ValueType::INT), ValueType::VOID);
+	add_builtin("write_string", std::vector<ValueType>(1, ValueType::STRING), ValueType::INT);
+
 	/** generate code **/
 	root.accept(*this);
 }
 
 void CodeGenerator::print(std::string outf) {
-	// std::error_code EC;
-	// llvm::raw_fd_ostream out(outf, EC, llvm::sys::fs::F_None);
-	// if (EC) {
-	// 	std::cerr << "Error writing to file " << outf << "\n";
-	// 	return;
-	// }
-	// module->print(out, nullptr);
-
-	module->print(llvm::outs(), nullptr);
+	if (outf != "") {
+		std::error_code EC;
+		llvm::raw_fd_ostream out(outf, EC, llvm::sys::fs::F_None);
+		if (EC) {
+			std::cerr << "Error writing to file " << outf << "\n";
+			return;
+		}
+		module->print(out, nullptr);
+	} else { // no file provided, write to stdout
+		module->print(llvm::outs(), nullptr);
+	}
 }
 
 llvm::Value* CodeGenerator::get_return_stack_top(bool pop) {
@@ -104,6 +119,33 @@ llvm::Type* CodeGenerator::get_llvm_type(ValueType ty) {
 	}
 
 	return nullptr;
+}
+
+void CodeGenerator::add_runtime_error_inst(int ec, std::string err) {
+	{
+		llvm::Value *ev = builder.CreateGlobalStringPtr("Runtime error: " + err + "\n", "error_message");
+		llvm::Function *func = module->getFunction("write_string");
+		std::vector<llvm::Value *> args;
+		args.push_back(ev);
+		builder.CreateCall(func, args);
+	}
+	{
+		llvm::Function *func = module->getFunction("exit");
+		std::vector<llvm::Value *> args;
+		args.push_back(llvm::ConstantInt::get(context, llvm::APInt(32, ec)));
+		builder.CreateCall(func, args);
+	}
+	{
+		// dummy ret, to avoid IR error
+		llvm::Function *func = builder.GetInsertBlock()->getParent();
+		if (func->getReturnType()->isVoidTy()) {
+			builder.CreateRetVoid(); 
+		} else if (func->getReturnType()->isIntegerTy(32)) {
+			builder.CreateRet(llvm::ConstantInt::get(context, llvm::APInt(32, 0))); 
+		} else if (func->getReturnType()->isIntegerTy(1)) {
+			builder.CreateRet(llvm::ConstantInt::get(context, llvm::APInt(1, 0))); 
+		}
+	}
 }
 
 void CodeGenerator::error(const std::string& fmt, ...) {
@@ -159,6 +201,26 @@ void CodeGenerator::visit(ArrayLocationAST& node) {
 	index.push_back(llvm::ConstantInt::get(context, llvm::APInt(64, 0)));
 	index.push_back(get_return(*node.index_expr));
 
+
+	llvm::Function *func = builder.GetInsertBlock()->getParent();
+
+	llvm::BasicBlock *lowerBoundPassBB = llvm::BasicBlock::Create(context, "array-bound-lower", func);
+	llvm::BasicBlock *upperBoundPassBB = llvm::BasicBlock::Create(context, "array-bound-upper", func);
+	llvm::BasicBlock *errorBB = llvm::BasicBlock::Create(context, "array-out-of-bounds", func);
+	
+	llvm::Value *lower_bound_cond = builder.CreateICmpSGE(index[1], llvm::ConstantInt::get(context, llvm::APInt(32, 0)), "array-bound-ge-0");
+	builder.CreateCondBr(lower_bound_cond, lowerBoundPassBB, errorBB);
+	builder.SetInsertPoint(lowerBoundPassBB);
+
+	int array_len = symbol_table.get_array_len(node.id);
+	llvm::Value *upper_bound_cond = builder.CreateICmpSLT(index[1], llvm::ConstantInt::get(context, llvm::APInt(32, array_len)), "array-bound-lt-size");
+	builder.CreateCondBr(upper_bound_cond, upperBoundPassBB, errorBB);
+	
+	builder.SetInsertPoint(errorBB);
+	add_runtime_error_inst(1, "Array access out of bounds: " + node.id);
+	
+	builder.SetInsertPoint(upperBoundPassBB);
+
 	var = builder.CreateGEP(var, index, "array_location");
 	
 	if (!node.is_lvalue) {
@@ -196,6 +258,7 @@ void CodeGenerator::visit(ArrayDeclarationAST& node) {
 														 nullptr,
 														 node.id);
     var->setInitializer(llvm::ConstantAggregateZero::get(type));
+    symbol_table.add_array(node.id, node.array_len);
 }
 
 // operators.hh
@@ -461,14 +524,15 @@ void CodeGenerator::visit(MethodDeclarationAST& node) {
 		// create a return at the end of void function, to avoid IR error
 		builder.CreateRetVoid();
 	} else {
-		// return 0 on reaching end (default)
 		// TODO: check for missing return in semantic analysis
-		builder.CreateRet(llvm::Constant::getNullValue(get_llvm_type(node.return_type)));
+		add_runtime_error_inst(2, "Control reaches end of function `" + node.name + "`");
 	}
 
 	symbol_table.block_end();
 	
-	llvm::verifyFunction(*func);
+	if (llvm::verifyFunction(*func)) {
+		has_error = true;
+	}
 }
 
 void CodeGenerator::visit(MethodCallAST& node) {
