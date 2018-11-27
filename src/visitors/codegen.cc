@@ -145,7 +145,7 @@ void CodeGenerator::visit(BooleanLiteralAST& node) {
 	return_stack.push(value);
 }
 void CodeGenerator::visit(StringLiteralAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	return_stack.push(builder.CreateGlobalStringPtr(node.value, "literal"));
 }
 
 // variables.hh
@@ -158,12 +158,23 @@ void CodeGenerator::visit(VariableLocationAST& node) {
 		var = module->getNamedGlobal(node.id);
 	}
 	if (!node.is_lvalue) {
-		var = builder.CreateLoad(var, node.id.c_str());
+		var = builder.CreateLoad(var, node.id);
 	}
 	return_stack.push(var);
 }
 void CodeGenerator::visit(ArrayLocationAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::Value *var = module->getNamedGlobal(node.id);
+	std::vector<llvm::Value *> index;
+	index.push_back(llvm::ConstantInt::get(context, llvm::APInt(64, 0)));
+	index.push_back(get_return(*node.index_expr));
+
+	var = builder.CreateGEP(var, index, "array_location");
+	
+	if (!node.is_lvalue) {
+		var = builder.CreateLoad(var, node.id);
+	}
+	
+	return_stack.push(var);
 }
 
 void CodeGenerator::visit(VariableDeclarationAST& node) {
