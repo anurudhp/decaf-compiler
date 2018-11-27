@@ -44,7 +44,7 @@ private:
 	llvm::Value* get_return_stack_top(bool pop = true);
 	llvm::Value* get_return(BaseAST& node);
 
-	llvm::Type* get_type(ValueType ty);
+	llvm::Type* get_llvm_type(ValueType ty);
 	void add_builtin(std::string name, std::vector<ValueType> _params, ValueType ret);
 
 	void error(const std::string& fmt, ...);

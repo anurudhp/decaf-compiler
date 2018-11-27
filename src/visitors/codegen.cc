@@ -101,7 +101,7 @@ llvm::Value* CodeGenerator::get_return(BaseAST& node) {
 	return get_return_stack_top();
 }
 
-llvm::Type* CodeGenerator::get_type(ValueType ty) {
+llvm::Type* CodeGenerator::get_llvm_type(ValueType ty) {
 	if (ty == ValueType::INT) {
 		return llvm::Type::getInt32Ty(context);
 	}
@@ -167,17 +167,33 @@ void CodeGenerator::visit(ArrayLocationAST& node) {
 }
 
 void CodeGenerator::visit(VariableDeclarationAST& node) {
+	auto type = get_llvm_type(node.type);
+	auto init = llvm::Constant::getNullValue(type);
 	if (symbol_table.is_global_scope()) { // global variable
-		throw unimplemented_error(__PRETTY_FUNCTION__);
+		llvm::GlobalVariable *var = new llvm::GlobalVariable(*module,
+															 type,
+															 false,
+															 llvm::GlobalValue::InternalLinkage,
+															 nullptr,
+															 node.id);
+		var->setInitializer(init);
 	} else { // local/block variable
-		llvm::AllocaInst* alloca = builder.CreateAlloca(get_type(node.type), 0, node.id);
+		llvm::AllocaInst* alloca = builder.CreateAlloca(type, 0, node.id);
+		builder.CreateStore(init, alloca);
 		symbol_table.add_variable(node.id, alloca);
 		return_stack.push(alloca);
 	}
 }
 
 void CodeGenerator::visit(ArrayDeclarationAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
+	llvm::ArrayType *type = llvm::ArrayType::get(get_llvm_type(node.type), node.array_len);
+	llvm::GlobalVariable *var = new llvm::GlobalVariable(*module,
+														 type,
+														 false,
+														 llvm::GlobalValue::InternalLinkage,
+														 nullptr,
+														 node.id);
+    var->setInitializer(llvm::ConstantAggregateZero::get(type));
 }
 
 // operators.hh
@@ -268,15 +284,14 @@ void CodeGenerator::visit(UnaryNotAST& node) {
 
 // statements.hh
 void CodeGenerator::visit(ReturnStatementAST& node) {
-	// throw unimplemented_error(__PRETTY_FUNCTION__);
+	if (node.ret_expr == NULL) { // ret void
+		builder.CreateRetVoid();
+	} else { // ret val
+		auto ret = get_return(*node.ret_expr);
+		builder.CreateRet(ret);
+	}
+}
 
-}
-void CodeGenerator::visit(BreakStatementAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
-}
-void CodeGenerator::visit(ContinueStatementAST& node) {
-	throw unimplemented_error(__PRETTY_FUNCTION__);
-}
 void CodeGenerator::visit(IfStatementAST& node) {
 	llvm::Function *func = builder.GetInsertBlock()->getParent();
 
@@ -310,9 +325,18 @@ void CodeGenerator::visit(IfStatementAST& node) {
 	builder.SetInsertPoint(mergeBB);
 }
 
+void CodeGenerator::visit(BreakStatementAST& node) {
+	throw unimplemented_error(__PRETTY_FUNCTION__);
+}
+
+void CodeGenerator::visit(ContinueStatementAST& node) {
+	throw unimplemented_error(__PRETTY_FUNCTION__);
+}
+
 void CodeGenerator::visit(ForStatementAST& node) {
 	throw unimplemented_error(__PRETTY_FUNCTION__);
 }
+
 void CodeGenerator::visit(AssignStatementAST& node) {
 	llvm::Value *rvalue = get_return(*node.rval);
 	llvm::Value *lvalue = get_return(*node.lloc);
@@ -355,12 +379,14 @@ void CodeGenerator::visit(MethodDeclarationAST& node) {
 	// function proto
 	std::vector<llvm::Type *> argument_types;
 	for (auto param: node.parameters) {
-		argument_types.push_back(get_type(param->type));
+		argument_types.push_back(get_llvm_type(param->type));
 	}
-	llvm::Type *return_type = get_type(node.return_type);
+	llvm::Type *return_type = get_llvm_type(node.return_type);
 	llvm::FunctionType *func_type = llvm::FunctionType::get(return_type, argument_types, false);
+	auto linkage = node.name == "main" ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
+
 	llvm::Function *func = llvm::Function::Create(func_type,
-												  llvm::Function::ExternalLinkage,
+												  linkage,
 												  node.name,
 												  module);
 
@@ -389,13 +415,10 @@ void CodeGenerator::visit(MethodDeclarationAST& node) {
 	if (node.return_type == ValueType::VOID) {
 		// create a return at the end of void function, to avoid IR error
 		builder.CreateRetVoid();
-	} else if (node.return_type == ValueType::INT) {
+	} else {
 		// return 0 on reaching end (default)
 		// TODO: check for missing return in semantic analysis
-		builder.CreateRet(llvm::ConstantInt::get(context, llvm::APInt(32, 0)));
-	} else if (node.return_type == ValueType::BOOL) {
-		// return false on reaching end (default)
-		builder.CreateRet(llvm::ConstantInt::get(context, llvm::APInt(1, 0)));
+		builder.CreateRet(llvm::Constant::getNullValue(get_llvm_type(node.return_type)));
 	}
 
 	symbol_table.block_end();
