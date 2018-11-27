@@ -18,5 +18,6 @@ class Program {
 		}
 		s = get_sum(n);
 		callout("write_int", s);
+		callout("write_char", '\n');
 	}
 }

@@ -45,6 +45,7 @@ bin/decaf: $(OBJS) build/builtins.o
 	$(CXX) -o $@ $^ $(LLVM_LINK_OPTS) $(CXX_OPTS) $(LLVM_OPTS)
 
 parser: bin/decaf
+	cp src/compile.sh bin/compile && chmod +x bin/compile
 
 test: parser
 	@for i in `ls test-programs`; do  			 			\

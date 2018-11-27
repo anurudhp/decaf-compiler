@@ -127,7 +127,7 @@ void CodeGenerator::add_runtime_error_inst(int ec, std::string err) {
 		llvm::Function *func = module->getFunction("write_string");
 		std::vector<llvm::Value *> args;
 		args.push_back(ev);
-		builder.CreateCall(func, args);
+		builder.CreateCall(func, args, "errtmp");
 	}
 	{
 		llvm::Function *func = module->getFunction("exit");
@@ -450,11 +450,11 @@ void CodeGenerator::visit(AssignStatementAST& node) {
 	llvm::Value *lvalue = get_return(*node.lloc);
 
 	if (node.op != OperatorType::ASSIGN) {
-		llvm::Value *ivalue = builder.CreateLoad(lvalue);
+		llvm::Value *ivalue = builder.CreateLoad(lvalue, "lvaltmp");
 		if (node.op == OperatorType::ASSIGN_ADD) {
-			rvalue = builder.CreateAdd(ivalue, rvalue, "+=");
+			rvalue = builder.CreateAdd(ivalue, rvalue, "plus-assign");
 		} else {
-			rvalue = builder.CreateSub(ivalue, rvalue, "-=");
+			rvalue = builder.CreateSub(ivalue, rvalue, "minus-assign");
 		}
 	}
 	
