@@ -59,14 +59,10 @@ CodeGenerator::~CodeGenerator() {
 }
 
 void CodeGenerator::add_builtin(std::string name, std::vector<ValueType> _params, ValueType ret) {
-	// if (module->getFunction(name) != nullptr) return;
+	if (module->getFunction(name) != nullptr) return;
 
-	std::vector<llvm::Type *> params;
-	for (auto p: _params) {
-		params.push_back(get_llvm_type(p));
-	}
 	llvm::Type *ret_type = get_llvm_type(ret);
-	llvm::FunctionType *ftype = llvm::FunctionType::get(ret_type, params, false);
+	llvm::FunctionType *ftype = llvm::FunctionType::get(ret_type, true);
 	llvm::Function::Create(ftype, llvm::Function::ExternalLinkage, name, module);
 }
 
