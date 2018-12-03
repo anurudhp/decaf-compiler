@@ -90,6 +90,7 @@ void beautify_string(char *s) {
  /*** keywords ***/
 "int" 					{return token::INT;} 
 "boolean"				{return token::BOOL;}
+"bool"					{return token::BOOL;}
 "void"					{return token::VOID;}
 "class"					{return token::CLASS;}
 "if"					{return token::IF;}
