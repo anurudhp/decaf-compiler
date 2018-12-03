@@ -25,6 +25,9 @@ void VariableLocationAST::accept(ASTvisitor& V) {
 void ArrayLocationAST::accept(ASTvisitor& V) {
 	V.visit(*this);
 }
+void ArrayAddressAST::accept(ASTvisitor& V) {
+	V.visit(*this);
+}
 
 void VariableDeclarationAST::accept(ASTvisitor& V) {
 	V.visit(*this);

@@ -28,6 +28,10 @@ void SemanticAnalyzer::SymbolTable::block_end() {
 	scope_depth--;
 }
 
+void SemanticAnalyzer::silent(bool f) {
+	_silent = f;
+}
+
 // add
 void SemanticAnalyzer::SymbolTable::add_variable(VariableDeclarationAST *variable) {
 	auto& current_scope = variables.back();
@@ -122,7 +126,7 @@ void SemanticAnalyzer::SymbolTable::add_method(MethodDeclarationAST *method) {
 }
 
 // lookup
-VariableDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_variable(VariableLocationAST *varloc) {
+VariableDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_variable(LocationAST *varloc) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(varloc->id)) {
 			return variables[i][varloc->id];
@@ -148,9 +152,9 @@ VariableDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_variable(VariableL
 						   "Variable `%s` not declared",
 						   varloc->id.c_str());
 	}
-	return NULL;
+	return nullptr;
 }
-ArrayDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_array_element(ArrayLocationAST *arrloc) {
+ArrayDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_array_element(LocationAST *arrloc) {
 	for (int i = scope_depth - 1; i >= 0; i--) {
 		if (variables[i].count(arrloc->id)) {
 			auto decl = variables[i][arrloc->id];
@@ -159,7 +163,7 @@ ArrayDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_array_element(ArrayLo
 							   arrloc->id.c_str(),
 							   decl->location.c_str(),
 							   decl->to_string().c_str());
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -177,7 +181,7 @@ ArrayDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_array_element(ArrayLo
 						   "Array `%s` not declared",
 						   arrloc->id.c_str());
 	}
-	return NULL;
+	return nullptr;
 }
 
 MethodDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_method(MethodCallAST *mcall) {
@@ -189,7 +193,7 @@ MethodDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_method(MethodCallAST
 							   mcall->id.c_str(),
 							   decl->location.c_str(),
 							   decl->to_string().c_str());
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -200,7 +204,7 @@ MethodDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_method(MethodCallAST
 						   mcall->id.c_str(),
 						   decl->location.c_str(),
 						   decl->to_string().c_str());
-		return NULL;
+		return nullptr;
 	}
 
 	if (methods.count(mcall->id)) {
@@ -210,7 +214,7 @@ MethodDeclarationAST* SemanticAnalyzer::SymbolTable::lookup_method(MethodCallAST
 	analyzer.log_error(2, mcall->location,
 					   "Method `%s` not declared",
 					   mcall->id.c_str());
-	return NULL;
+	return nullptr;
 }
 
 
@@ -220,6 +224,8 @@ void SemanticAnalyzer::log_error(const int error_type,
 								 const std::string& location,
 								 const std::string& fmt,
 								 ...) {
+	if (_silent) return; // ignore errors
+
 	va_list args;
 	va_start(args, fmt);
 	vsnprintf(_buffer, BUFFER_LENGTH, fmt.c_str(), args);
@@ -237,7 +243,7 @@ void SemanticAnalyzer::log_error(const int error_type,
 bool SemanticAnalyzer::check(BaseAST& root) {
 	symbol_table = new SymbolTable(*this);
 	root.accept(*this);
-	delete symbol_table; symbol_table = NULL;
+	delete symbol_table; symbol_table = nullptr;
 
 	return errors.empty();
 }
@@ -294,6 +300,14 @@ void SemanticAnalyzer::visit(ArrayLocationAST& node) {
 		log_error(10, node.location,
 				  "Invalid index for array, expected `int` expression, got `%s`",
 				  value_type_to_string(index_type).c_str());
+	}
+}
+void SemanticAnalyzer::visit(ArrayAddressAST& node) {
+	auto decl = symbol_table->lookup_array_element(&node);
+	if (decl && decl->type == ValueType::INT) {
+		type_stack.push(ValueType::INT_ARRAY);
+	} else {
+		type_stack.push(ValueType::NONE);
 	}
 }
 
@@ -408,7 +422,7 @@ void SemanticAnalyzer::visit(UnaryNotAST& node) {
 // statements.hh
 void SemanticAnalyzer::visit(ReturnStatementAST& node) {
 	if (current_method->return_type == ValueType::VOID 
-		&& node.ret_expr != NULL) {
+		&& node.ret_expr != nullptr) {
 		log_error(7, node.location,
 				  "Unexpected return expression for method `%s`",
 				  current_method->to_string().c_str());
@@ -416,7 +430,7 @@ void SemanticAnalyzer::visit(ReturnStatementAST& node) {
 
 	if (current_method->return_type != ValueType::VOID) {
 		ValueType ret_type = ValueType::VOID;
-		if (node.ret_expr != NULL) {
+		if (node.ret_expr != nullptr) {
 			node.ret_expr->accept(*this);
 			ret_type = get_top_type();
 		}
@@ -454,7 +468,7 @@ void SemanticAnalyzer::visit(IfStatementAST& node) {
 	}
 
 	node.then_block->accept(*this);
-	if (node.else_block != NULL) {
+	if (node.else_block != nullptr) {
 		node.else_block->accept(*this);
 	}
 }
@@ -569,12 +583,29 @@ void SemanticAnalyzer::visit(MethodCallAST& node) {
 }
 
 void SemanticAnalyzer::visit(CalloutCallAST& node) {
-	for (auto arg: node.arguments) {
+	for (auto& arg: node.arguments) {
+		// array address as argument
+		// TODO: cleanup (its *way* too convoluted right now)
+		{
+			silent(true);
+			LocationAST *loc = dynamic_cast<LocationAST *>(arg);
+			if (loc != nullptr && loc->index_expr == nullptr) {
+				ArrayLocationAST array_loc(loc->id, nullptr);
+				auto array_decl = symbol_table->lookup_array_element(&array_loc);
+				if (array_decl != nullptr && array_decl->type == ValueType::INT) {
+					BaseAST *new_arg = new ArrayAddressAST(loc->id);
+					std::swap(arg, new_arg);
+				}
+			}
+			silent(false);
+		}
+
 		arg->accept(*this);
+
 		ValueType expr = get_top_type();
 		if (expr == ValueType::NONE) continue;
 		
-		if (expr != ValueType::INT && expr != ValueType::BOOL && expr != ValueType::STRING) {
+		if (expr != ValueType::INT && expr != ValueType::BOOL && expr != ValueType::STRING && expr != ValueType::INT_ARRAY) {
 			log_error(5, arg->location,
 					  "Invalid callout argument type `%s`",
 					  value_type_to_string(expr).c_str());
@@ -593,7 +624,7 @@ void SemanticAnalyzer::visit(ProgramAST& node) {
 
 	for (auto decl: node.global_variables) {
 		auto adecl = dynamic_cast<ArrayDeclarationAST *>(decl);
-		if (adecl == NULL) {
+		if (adecl == nullptr) {
 			symbol_table->add_variable(decl);
 		} else {
 			symbol_table->add_array(adecl);

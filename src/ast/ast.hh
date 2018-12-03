@@ -29,6 +29,8 @@ class StringLiteralAST;
 class LocationAST;
 class VariableLocationAST;
 class ArrayLocationAST;
+class ArrayAddressAST;
+
 class VariableDeclarationAST; 
 class ArrayDeclarationAST; 
 

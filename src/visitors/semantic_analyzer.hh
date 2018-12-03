@@ -27,6 +27,7 @@ protected:
 
 		SemanticAnalyzer& analyzer;
 
+
 		// enter a new block, add an inner-most scope layer
 		void block_start(); 
 		// remove the inner-most scope layer
@@ -39,8 +40,8 @@ protected:
 		void add_method(MethodDeclarationAST *method);
 
 		// lookup:
-		VariableDeclarationAST* lookup_variable(VariableLocationAST *varloc);
-		ArrayDeclarationAST* lookup_array_element(ArrayLocationAST *arrloc);
+		VariableDeclarationAST* lookup_variable(LocationAST *varloc);
+		ArrayDeclarationAST* lookup_array_element(LocationAST *arrloc);
 		MethodDeclarationAST* lookup_method(MethodCallAST *mcall);
 
 		std::vector<
@@ -51,6 +52,8 @@ protected:
 		int scope_depth, hold_depth;
 	};
 
+	bool _silent;
+	void silent(bool f);
 	void log_error(const int error_type, const std::string& location, const std::string& fmt, ...);
 
 private:
@@ -79,6 +82,7 @@ public:
 	virtual void visit(LocationAST& node);
 	virtual void visit(VariableLocationAST& node);
 	virtual void visit(ArrayLocationAST& node);
+	virtual void visit(ArrayAddressAST& node);
 	virtual void visit(VariableDeclarationAST& node) {}
 	virtual void visit(ArrayDeclarationAST& node) {}
 

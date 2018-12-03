@@ -41,6 +41,7 @@ public:
 	virtual void visit(LocationAST& node);
 	virtual void visit(VariableLocationAST& node);
 	virtual void visit(ArrayLocationAST& node);
+	virtual void visit(ArrayAddressAST& node) {}
 	virtual void visit(VariableDeclarationAST& node) {}
 	virtual void visit(ArrayDeclarationAST& node) {}
 

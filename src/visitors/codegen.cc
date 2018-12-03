@@ -226,6 +226,18 @@ void CodeGenerator::visit(ArrayLocationAST& node) {
 	return_stack.push(var);
 }
 
+void CodeGenerator::visit(ArrayAddressAST& node) {
+	llvm::Value *var = module->getNamedGlobal(node.id);
+
+	std::vector<llvm::Value *> index;
+	index.push_back(llvm::ConstantInt::get(context, llvm::APInt(64, 0)));
+	index.push_back(llvm::ConstantInt::get(context, llvm::APInt(64, 0)));
+
+	var = builder.CreateGEP(var, index, "array_address");
+
+	return_stack.push(var);
+}
+
 void CodeGenerator::visit(VariableDeclarationAST& node) {
 	auto type = get_llvm_type(node.type);
 	auto init = llvm::Constant::getNullValue(type);

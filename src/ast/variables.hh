@@ -30,7 +30,7 @@ public:
 class VariableLocationAST : public LocationAST {
 public:
 	VariableLocationAST(std::string id, bool is_lvalue = false)
-	: LocationAST(id, NULL, is_lvalue) {}
+	: LocationAST(id, nullptr, is_lvalue) {}
 	virtual ~VariableLocationAST() = default;
 
 	virtual void accept(ASTvisitor& V);
@@ -41,6 +41,15 @@ public:
 	ArrayLocationAST(std::string id, BaseAST *index, bool is_lvalue = false)
 	: LocationAST(id, index, is_lvalue) {}
 	virtual ~ArrayLocationAST() = default;
+
+	virtual void accept(ASTvisitor& V);
+};
+
+class ArrayAddressAST : public LocationAST {
+public:
+	ArrayAddressAST(std::string id)
+	: LocationAST(id, nullptr, false) {}
+	virtual ~ArrayAddressAST() = default;
 
 	virtual void accept(ASTvisitor& V);
 };
