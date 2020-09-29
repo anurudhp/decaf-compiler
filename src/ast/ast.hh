@@ -1,22 +1,22 @@
 #pragma once
 
-#include <string>
 #include "../location.hh"
+#include <string>
 
 class ASTvisitor;
 
 class BaseAST {
 public:
-	BaseAST(): location("??") {}
-	virtual ~BaseAST() = default;
+  BaseAST() : location("??") {}
+  virtual ~BaseAST() = default;
 
-	void set_location(const std::string& loc);
-	void set_location(const Decaf::location& loc);
+  void set_location(const std::string &loc);
+  void set_location(const Decaf::location &loc);
 
-	virtual void accept(ASTvisitor& V) = 0;
-	virtual std::string to_string();
+  virtual void accept(ASTvisitor &V) = 0;
+  virtual std::string to_string();
 
-	std::string location;
+  std::string location;
 };
 
 // literals.hh
@@ -31,8 +31,8 @@ class VariableLocationAST;
 class ArrayLocationAST;
 class ArrayAddressAST;
 
-class VariableDeclarationAST; 
-class ArrayDeclarationAST; 
+class VariableDeclarationAST;
+class ArrayDeclarationAST;
 
 enum class ValueType;
 

@@ -7,44 +7,41 @@
 
 class LiteralAST : public BaseAST {
 public:
-	LiteralAST(ValueType _type)
-	: type(_type) {}
-	virtual ~LiteralAST() = default;
+  LiteralAST(ValueType _type) : type(_type) {}
+  virtual ~LiteralAST() = default;
 
-	virtual void accept(ASTvisitor& V);
-	
-	ValueType type;
+  virtual void accept(ASTvisitor &V);
+
+  ValueType type;
 };
 
-class IntegerLiteralAST: public LiteralAST {
+class IntegerLiteralAST : public LiteralAST {
 public:
-	IntegerLiteralAST(int _value)
-	: LiteralAST(ValueType::INT), value(_value) {}
-	virtual ~IntegerLiteralAST() = default;
-	
-	virtual void accept(ASTvisitor& V);
+  IntegerLiteralAST(int _value) : LiteralAST(ValueType::INT), value(_value) {}
+  virtual ~IntegerLiteralAST() = default;
 
-	int value;
+  virtual void accept(ASTvisitor &V);
+
+  int value;
 };
 
-class BooleanLiteralAST: public LiteralAST {
+class BooleanLiteralAST : public LiteralAST {
 public:
-	BooleanLiteralAST(bool _value)
-	: LiteralAST(ValueType::BOOL), value(_value) {}
-	virtual ~BooleanLiteralAST() = default;
+  BooleanLiteralAST(bool _value) : LiteralAST(ValueType::BOOL), value(_value) {}
+  virtual ~BooleanLiteralAST() = default;
 
-	virtual void accept(ASTvisitor& V);
+  virtual void accept(ASTvisitor &V);
 
-	bool value;
+  bool value;
 };
 
-class StringLiteralAST: public LiteralAST {
+class StringLiteralAST : public LiteralAST {
 public:
-	StringLiteralAST(std::string _value)
-	: LiteralAST(ValueType::STRING), value(_value) {}
-	virtual ~StringLiteralAST() = default;
+  StringLiteralAST(std::string _value)
+      : LiteralAST(ValueType::STRING), value(_value) {}
+  virtual ~StringLiteralAST() = default;
 
-	virtual void accept(ASTvisitor& V);
+  virtual void accept(ASTvisitor &V);
 
-	std::string value;
+  std::string value;
 };
